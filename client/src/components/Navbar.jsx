@@ -1,13 +1,59 @@
 "use client";
 
+
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { chatAPI } from "@/lib/api";
+import { getSocket } from "@/lib/socket";
 import { useAuth } from "@/context/AuthContext";
 import { FiMenu, FiX, FiPlus, FiMessageSquare, FiUser, FiLogOut, FiSearch } from "react-icons/fi";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // Unread conversations badge (fetch from API)
+  const [unreadConv, setUnreadConv] = useState(0);
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchUnread() {
+      try {
+        const res = await chatAPI.getConversations();
+        if (!isMounted) return;
+        const conversations = res.data?.conversations || [];
+        const count = Array.isArray(conversations)
+          ? conversations.filter((c) => c.unreadCount > 0).length
+          : 0;
+        setUnreadConv(count);
+      } catch {
+        setUnreadConv(0);
+      }
+    }
+    if (user) fetchUnread();
+    // Optionally, poll every 30s for updates
+    const interval = setInterval(() => {
+      if (user) fetchUnread();
+    }, 30000);
+
+    // Listen for new messages via websocket
+    const socket = getSocket();
+    const handleReceiveMessage = () => {
+      if (user) fetchUnread();
+    };
+    socket.on("receive-message", handleReceiveMessage);
+    // Listen for refresh-unread event (triggered when messages are marked as read)
+    const handleRefreshUnread = () => {
+      if (user) fetchUnread();
+    };
+    socket.on("refresh-unread", handleRefreshUnread);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+      socket.off("receive-message", handleReceiveMessage);
+      socket.off("refresh-unread", handleRefreshUnread);
+    };
+  }, [user]);
 
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
@@ -43,8 +89,13 @@ export default function Navbar() {
                   <FiPlus />
                   <span>Sell</span>
                 </Link>
-                <Link href="/chat" className="p-2 text-gray-600 hover:text-primary-600">
+                <Link href="/chat" className="relative p-2 text-gray-600 hover:text-primary-600">
                   <FiMessageSquare size={22} />
+                  {unreadConv > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-primary-600 text-white text-xs rounded-full px-1.5 min-w-[18px] text-center border border-white">
+                      {unreadConv}
+                    </span>
+                  )}
                 </Link>
                 <Link href="/dashboard" className="p-2 text-gray-600 hover:text-primary-600">
                   <FiUser size={22} />

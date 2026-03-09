@@ -10,6 +10,16 @@ import { FiSend, FiArrowLeft, FiUser, FiMessageSquare } from "react-icons/fi";
 import { formatDistanceToNow } from "date-fns";
 
 function ChatContent() {
+    // Blocked state for UI
+    const [blocked, setBlocked] = useState(false);
+
+    // Check if user is blocked (simple fetch on open conversation)
+    const checkBlocked = useCallback(async (otherUserId) => {
+      // This is a simple check: try to send a dummy block/unblock request and catch error, or fetch user profile if you have block info there
+      // For now, just optimistically reset
+      setBlocked(false);
+    }, []);
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, loading: authLoading } = useAuth();
@@ -44,7 +54,7 @@ function ChatContent() {
 
       // If redirected from product page, start or open conversation
       if (recipientId && user) {
-        const convId = [user._id, recipientId].sort().join("_") + (productId ? `_${productId}` : "");
+        const convId = [user._id, recipientId].sort().join("_");
         const existing = data.conversations.find((c) => c.conversationId === convId);
         if (existing) {
           openConversation(convId);
@@ -70,14 +80,58 @@ function ChatContent() {
       const conv = conversations.find((c) => c.conversationId === conversationId);
       setActiveConversation(conv || { conversationId });
 
+      // Check block status
+      const otherUserId = (conv && conv.otherUser?._id) || (conversationId.split("_").find((id) => id !== user._id));
+      if (otherUserId) checkBlocked(otherUserId);
+
       // Join socket room
       const socket = getSocket();
       socket.emit("join-conversation", conversationId);
       socket.emit("mark-read", { conversationId, userId: user._id });
+      // Notify all clients to refresh unread badge
+      socket.emit("refresh-unread", { userId: user._id });
     } catch {
       toast.error("Failed to load messages");
     } finally {
       setLoadingMessages(false);
+    }
+  };
+
+  // Delete conversation
+  const handleDeleteConversation = async () => {
+    if (!activeConversation?.conversationId) return;
+    if (!window.confirm("Are you sure you want to delete this conversation?")) return;
+    try {
+      await chatAPI.deleteConversation(activeConversation.conversationId);
+      toast.success("Conversation deleted");
+      setActiveConversation(null);
+      loadConversations();
+    } catch {
+      toast.error("Failed to delete conversation");
+    }
+  };
+
+  // Block/unblock user
+  const handleBlockUser = async () => {
+    const otherUserId = activeConversation?.otherUser?._id;
+    if (!otherUserId) return;
+    try {
+      await chatAPI.blockUser(otherUserId);
+      setBlocked(true);
+      toast.success("User blocked");
+    } catch {
+      toast.error("Failed to block user");
+    }
+  };
+  const handleUnblockUser = async () => {
+    const otherUserId = activeConversation?.otherUser?._id;
+    if (!otherUserId) return;
+    try {
+      await chatAPI.unblockUser(otherUserId);
+      setBlocked(false);
+      toast.success("User unblocked");
+    } catch {
+      toast.error("Failed to unblock user");
     }
   };
 
@@ -89,8 +143,14 @@ function ChatContent() {
 
     const handleReceiveMessage = (message) => {
       if (activeConversation && message.conversationId === activeConversation.conversationId) {
-        setMessages((prev) => [...prev, message]);
+        setMessages((prev) => {
+          // Only add if not already present (by _id)
+          if (prev.some((m) => m._id === message._id)) return prev;
+          return [...prev, message];
+        });
         socket.emit("mark-read", { conversationId: message.conversationId, userId: user._id });
+        // Notify all clients to refresh unread badge
+        socket.emit("refresh-unread", { userId: user._id });
       }
       // Refresh conversations list
       loadConversations();
@@ -123,29 +183,18 @@ function ChatContent() {
         activeConversation?.otherUser?._id ||
         activeConversation?.conversationId?.split("_").find((id) => id !== user._id);
 
-      // Send via API
-      const { data } = await chatAPI.sendMessage({
-        receiverId,
-        content,
-        productId: productId || undefined,
-      });
-
-      // Also emit via socket for real-time
+      // Only emit via socket for real-time; do NOT call REST API
       const socket = getSocket();
       socket.emit("send-message", {
-        conversationId: data.conversationId,
         senderId: user._id,
         receiverId,
         content,
-        productId,
       });
 
-      setMessages((prev) => [...prev, data.message]);
-
       // Update active conversation ID if it was new
+      // (No REST API response, so just clear isNew and reload conversations)
       if (activeConversation?.isNew) {
-        setActiveConversation({ ...activeConversation, conversationId: data.conversationId, isNew: false });
-        socket.emit("join-conversation", data.conversationId);
+        setActiveConversation({ ...activeConversation, isNew: false });
         loadConversations();
       }
     } catch {
@@ -155,6 +204,14 @@ function ChatContent() {
   };
 
   if (authLoading) return null;
+
+  // Calculate unread conversations count for Navbar
+  const unreadConversations = conversations.filter((c) => c.unreadCount > 0).length;
+  if (typeof window !== "undefined") {
+    window.__MARKETPLACE_UNREAD_CONV = unreadConversations;
+    // This is a hack to allow Navbar to read this value reactively
+    // A better solution would be to use a global state/store
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-4">
@@ -240,8 +297,39 @@ function ChatContent() {
                   <FiUser className="text-primary-600" size={14} />
                 </div>
                 <span className="font-medium">
-                  {activeConversation.otherUser?.name || "User"}
+                  {/* Show the other user's name, not the auth user */}
+                  {(() => {
+                    // Try to get from activeConversation.otherUser
+                    if (activeConversation.otherUser?.name) return activeConversation.otherUser.name;
+                    // Fallback: find from conversations list
+                    const conv = conversations.find((c) => c.conversationId === activeConversation.conversationId);
+                    if (conv?.otherUser?.name) return conv.otherUser.name;
+                    return "User";
+                  })()}
                 </span>
+                <div className="ml-auto flex gap-2">
+                  <button
+                    onClick={handleDeleteConversation}
+                    className="text-xs text-red-600 border border-red-200 rounded px-2 py-1 hover:bg-red-50"
+                  >
+                    Delete
+                  </button>
+                  {blocked ? (
+                    <button
+                      onClick={handleUnblockUser}
+                      className="text-xs text-yellow-700 border border-yellow-200 rounded px-2 py-1 hover:bg-yellow-50"
+                    >
+                      Unblock
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleBlockUser}
+                      className="text-xs text-yellow-700 border border-yellow-200 rounded px-2 py-1 hover:bg-yellow-50"
+                    >
+                      Block
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Messages */}

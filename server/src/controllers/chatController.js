@@ -1,10 +1,59 @@
+// Delete a conversation (all messages for a conversationId)
+exports.deleteConversation = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const userId = req.user._id.toString();
+    // Only allow if user is part of the conversation
+    const parts = conversationId.split("_");
+    if (!parts.includes(userId)) {
+      return res.status(403).json({ success: false, message: "Not authorized" });
+    }
+    await Message.deleteMany({ conversationId });
+    res.json({ success: true, message: "Conversation deleted" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Block a user
+exports.blockUser = async (req, res) => {
+  try {
+    const { userIdToBlock } = req.body;
+    if (userIdToBlock === req.user._id.toString()) {
+      return res.status(400).json({ success: false, message: "Cannot block yourself" });
+    }
+    const user = await User.findById(req.user._id);
+    if (!user.blockedUsers.includes(userIdToBlock)) {
+      user.blockedUsers.push(userIdToBlock);
+      await user.save();
+    }
+    res.json({ success: true, message: "User blocked" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Unblock a user
+exports.unblockUser = async (req, res) => {
+  try {
+    const { userIdToUnblock } = req.body;
+    const user = await User.findById(req.user._id);
+    user.blockedUsers = user.blockedUsers.filter(
+      (id) => id.toString() !== userIdToUnblock
+    );
+    await user.save();
+    res.json({ success: true, message: "User unblocked" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 const Message = require("../models/Message");
 const User = require("../models/User");
 
 // Generate consistent conversation ID from two user IDs and optional product
-const getConversationId = (userId1, userId2, productId) => {
+const getConversationId = (userId1, userId2) => {
   const sorted = [userId1, userId2].sort();
-  return productId ? `${sorted[0]}_${sorted[1]}_${productId}` : `${sorted[0]}_${sorted[1]}`;
+  return `${sorted[0]}_${sorted[1]}`;
 };
 
 // Get all conversations for current user
@@ -103,7 +152,7 @@ exports.sendMessage = async (req, res) => {
       return res.status(404).json({ success: false, message: "Receiver not found" });
     }
 
-    const conversationId = getConversationId(req.user._id.toString(), receiverId, productId);
+    const conversationId = getConversationId(req.user._id.toString(), receiverId);
 
     const message = await Message.create({
       conversationId,

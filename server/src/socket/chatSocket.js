@@ -26,14 +26,27 @@ const setupChatSocket = (io) => {
     // Send message
     socket.on("send-message", async (data) => {
       try {
-        const { conversationId, senderId, receiverId, content, productId } = data;
-
+        const { senderId, receiverId, content } = data;
+        // Generate conversationId from user IDs only
+        const sorted = [senderId, receiverId].sort();
+        const conversationId = `${sorted[0]}_${sorted[1]}`;
+        // Block check
+        const User = require("../models/User");
+        const sender = await User.findById(senderId);
+        const receiver = await User.findById(receiverId);
+        if (receiver.blockedUsers.includes(senderId)) {
+          socket.emit("message-error", { error: "You are blocked by this user." });
+          return;
+        }
+        if (sender.blockedUsers.includes(receiverId)) {
+          socket.emit("message-error", { error: "You have blocked this user." });
+          return;
+        }
         // Save to database
         const message = await Message.create({
           conversationId,
           sender: senderId,
           receiver: receiverId,
-          product: productId || undefined,
           content,
         });
 

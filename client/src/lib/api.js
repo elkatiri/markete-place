@@ -58,6 +58,9 @@ export const chatAPI = {
   getConversations: () => api.get("/chat/conversations"),
   getMessages: (conversationId) => api.get(`/chat/messages/${conversationId}`),
   sendMessage: (data) => api.post("/chat/send", data),
+  deleteConversation: (conversationId) => api.delete(`/chat/conversation/${conversationId}`),
+  blockUser: (userIdToBlock) => api.post("/chat/block", { userIdToBlock }),
+  unblockUser: (userIdToUnblock) => api.post("/chat/unblock", { userIdToUnblock }),
 };
 
 // Categories
