@@ -89,12 +89,12 @@ async function seed() {
 
     // --- Categories ---
     const categoriesData = [
-      { name: "Électronique", icon: "💻", description: "Téléphones, ordinateurs, tablettes et accessoires" },
-      { name: "Vêtements", icon: "👕", description: "Mode homme, femme et enfant" },
-      { name: "Maison & Jardin", icon: "🏠", description: "Meubles, déco et articles de maison" },
-      { name: "Voitures", icon: "🚗", description: "Voitures, motos et pièces détachées" },
-      { name: "Sports & Loisirs", icon: "⚽", description: "Équipements sportifs et loisirs" },
-      { name: "Livres", icon: "📚", description: "Livres, manuels et magazines" },
+      { name: "Électronique", description: "Téléphones, ordinateurs, tablettes et accessoires" },
+      { name: "Vêtements", description: "Mode homme, femme et enfant" },
+      { name: "Maison & Jardin",  description: "Meubles, déco et articles de maison" },
+      { name: "Voitures", description: "Voitures, motos et pièces détachées" },
+      { name: "Sports & Loisirs",description: "Équipements sportifs et loisirs" },
+      { name: "Livres", description: "Livres, manuels et magazines" },
     ];
 
     const categories = [];

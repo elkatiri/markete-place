@@ -25,13 +25,16 @@ export default function SearchFilters() {
     categoryAPI.getAll().then((res) => setCategories(res.data.categories || [])).catch(() => {});
   }, []);
 
-  const applyFilters = () => {
+
+  // Auto-apply filters when filters state changes
+  useEffect(() => {
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([key, value]) => {
       if (value) params.set(key, value);
     });
     router.push(`/?${params.toString()}`);
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
 
   const clearFilters = () => {
     setFilters({
@@ -83,7 +86,7 @@ export default function SearchFilters() {
               <option value="">All Categories</option>
               {categories.map((cat) => (
                 <option key={cat._id} value={cat._id}>
-                  {cat.icon} {cat.name}
+                  {cat.name}
                 </option>
               ))}
             </select>
@@ -144,15 +147,7 @@ export default function SearchFilters() {
           </div>
 
           <div className="flex gap-2 mt-3">
-            <button onClick={applyFilters} className="btn-primary">
-              Apply Filters
-            </button>
-            {hasActiveFilters && (
-              <button onClick={clearFilters} className="btn-secondary flex items-center gap-1">
-                <FiX />
-                Clear
-              </button>
-            )}
+            {/* Clear button removed as requested */}
           </div>
         </div>
       </div>
