@@ -6,8 +6,10 @@ import { useAuth } from "@/context/AuthContext";
 import { chatAPI } from "@/lib/api";
 import { getSocket, connectSocket } from "@/lib/socket";
 import toast from "react-hot-toast";
-import { FiSend, FiArrowLeft, FiUser, FiMessageSquare } from "react-icons/fi";
+import { FiSend, FiArrowLeft, FiUser, FiMessageSquare, FiPackage } from "react-icons/fi";
 import { formatDistanceToNow } from "date-fns";
+
+const DEFAULT_PRODUCT_MESSAGE = "Is this product still available?";
 
 function ChatContent() {
     // Blocked state for UI
@@ -30,6 +32,7 @@ function ChatContent() {
   const [newMessage, setNewMessage] = useState("");
   const [loadingMessages, setLoadingMessages] = useState(false);
   const messagesEndRef = useRef(null);
+  const initializedFromParamsRef = useRef(false);
 
   // If coming from product page with ?to=sellerId&product=productId
   const recipientId = searchParams.get("to");
@@ -42,42 +45,66 @@ function ChatContent() {
       return;
     }
     if (user) {
-      loadConversations();
       connectSocket(user._id);
+      initializeChat();
     }
-  }, [user, authLoading, router]);
+  }, [user, authLoading, router, recipientId, productId]);
+
+  const initializeChat = async () => {
+    const currentConversations = await loadConversations();
+
+    if (!recipientId || !user || initializedFromParamsRef.current) {
+      return;
+    }
+
+    initializedFromParamsRef.current = true;
+    const conversationId = [user._id, recipientId].sort().join("_");
+
+    if (productId) {
+      try {
+        const { data } = await chatAPI.sendMessage({
+          receiverId: recipientId,
+          productId,
+          content: DEFAULT_PRODUCT_MESSAGE,
+        });
+        const updatedConversations = await loadConversations();
+        await openConversation(data.conversationId || conversationId, updatedConversations);
+      } catch {
+        toast.error("Failed to start product conversation");
+      }
+      return;
+    }
+
+    const existing = currentConversations.find((c) => c.conversationId === conversationId);
+    if (existing) {
+      await openConversation(conversationId, currentConversations);
+    } else {
+      setActiveConversation({
+        conversationId,
+        otherUser: { _id: recipientId },
+        isNew: true,
+      });
+    }
+  };
 
   const loadConversations = async () => {
     try {
       const { data } = await chatAPI.getConversations();
       setConversations(data.conversations);
-
-      // If redirected from product page, start or open conversation
-      if (recipientId && user) {
-        const convId = [user._id, recipientId].sort().join("_");
-        const existing = data.conversations.find((c) => c.conversationId === convId);
-        if (existing) {
-          openConversation(convId);
-        } else {
-          setActiveConversation({
-            conversationId: convId,
-            otherUser: { _id: recipientId },
-            isNew: true,
-          });
-        }
-      }
+      return data.conversations;
     } catch {
       // Conversations may be empty
+      return [];
     }
   };
 
-  const openConversation = async (conversationId) => {
+  const openConversation = async (conversationId, currentConversations = conversations) => {
     setLoadingMessages(true);
     try {
       const { data } = await chatAPI.getMessages(conversationId);
       setMessages(data.messages);
 
-      const conv = conversations.find((c) => c.conversationId === conversationId);
+      const conv = currentConversations.find((c) => c.conversationId === conversationId);
       setActiveConversation(conv || { conversationId });
 
       // Check block status
@@ -261,9 +288,29 @@ function ChatContent() {
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-gray-500 truncate">
-                        {conv.lastMessage?.content || ""}
-                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        {conv.lastMessage?.product?.images?.[0]?.url ? (
+                          <img
+                            src={conv.lastMessage.product.images[0].url}
+                            alt=""
+                            className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-gray-200"
+                          />
+                        ) : conv.lastMessage?.product ? (
+                          <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0 border border-gray-200">
+                            <FiPackage className="text-gray-400" size={16} />
+                          </div>
+                        ) : null}
+                        <div className="min-w-0">
+                          {conv.lastMessage?.product?.title && (
+                            <p className="text-xs font-medium text-gray-700 truncate">
+                              {conv.lastMessage.product.title}
+                            </p>
+                          )}
+                          <p className="text-sm text-gray-500 truncate">
+                            {conv.lastMessage?.content || ""}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                     {conv.unreadCount > 0 && (
                       <span className="bg-primary-600 text-white text-xs rounded-full px-2 py-0.5 min-w-[20px] text-center">
@@ -358,6 +405,40 @@ function ChatContent() {
                               : "bg-gray-100 text-gray-800 rounded-bl-sm"
                           }`}
                         >
+                          {msg.product && (
+                            <div
+                              className={`mb-3 rounded-xl overflow-hidden border ${
+                                isMine
+                                  ? "border-primary-400/40 bg-primary-500/40"
+                                  : "border-gray-200 bg-white"
+                              }`}
+                            >
+                              <div className="flex items-center gap-3 p-2.5">
+                                {msg.product.images?.[0]?.url ? (
+                                  <img
+                                    src={msg.product.images[0].url}
+                                    alt=""
+                                    className="w-14 h-14 rounded-lg object-cover flex-shrink-0"
+                                  />
+                                ) : (
+                                  <div className="w-14 h-14 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                                    <FiPackage className="text-gray-400" size={18} />
+                                  </div>
+                                )}
+                                <div className="min-w-0">
+                                  <p className={`text-xs font-medium ${isMine ? "text-primary-100" : "text-gray-500"}`}>
+                                    Product inquiry
+                                  </p>
+                                  <p className={`font-semibold truncate ${isMine ? "text-white" : "text-gray-900"}`}>
+                                    {msg.product.title}
+                                  </p>
+                                  <p className={`text-sm ${isMine ? "text-primary-100" : "text-primary-600"}`}>
+                                    ${msg.product.price?.toLocaleString()}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                           <p className="break-words">{msg.content}</p>
                           <p
                             className={`text-xs mt-1 ${

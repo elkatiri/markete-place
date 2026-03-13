@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 @layer base {
   body {
@@ -19,6 +19,13 @@
   }
   ::-webkit-scrollbar-thumb {
     @apply bg-gray-300 rounded-full hover:bg-gray-400;
+  }
+  /* Focus-visible for keyboard nav accessibility */
+  *:focus-visible {
+    @apply outline-2 outline-offset-2 outline-primary-500;
+  }
+  a:focus-visible, button:focus-visible {
+    @apply ring-2 ring-primary-500 ring-offset-2 rounded-lg;
   }
 }
 
@@ -44,6 +51,10 @@
     @apply text-gray-500 px-4 py-2.5 rounded-xl hover:bg-surface-100
            transition-all duration-200 font-medium text-sm active:scale-[0.98];
   }
+  .btn-icon {
+    @apply p-2.5 rounded-xl text-gray-500 hover:text-primary-600 hover:bg-primary-50
+           transition-all duration-200 active:scale-[0.95];
+  }
   .input-field {
     @apply w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl
            focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400
@@ -55,7 +66,8 @@
   }
   .card-hover {
     @apply bg-white rounded-2xl shadow-card border border-gray-100/80 overflow-hidden
-           transition-all duration-300 hover:shadow-card-hover hover:border-gray-200;
+           transition-all duration-300 hover:shadow-card-hover hover:border-gray-200
+           hover:-translate-y-0.5;
   }
   .badge {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium;
@@ -65,6 +77,9 @@
   }
   .badge-success {
     @apply badge bg-emerald-50 text-emerald-700 border border-emerald-100;
+  }
+  .badge-warning {
+    @apply badge bg-amber-50 text-amber-700 border border-amber-100;
   }
   .badge-danger {
     @apply badge bg-red-50 text-red-700 border border-red-100;
@@ -81,5 +96,54 @@
   }
   .section-title {
     @apply text-lg font-bold text-gray-900 tracking-tight;
+  }
+  .tooltip {
+    @apply absolute z-50 px-3 py-1.5 text-xs font-medium text-white bg-gray-900 rounded-lg
+           shadow-lg pointer-events-none opacity-0 group-hover:opacity-100
+           transition-opacity duration-200 whitespace-nowrap;
+  }
+  .skeleton {
+    @apply bg-gray-200 rounded-xl animate-pulse;
+  }
+  .divider {
+    @apply w-full h-px bg-gray-100;
+  }
+  .empty-state {
+    @apply flex flex-col items-center justify-center text-center py-16;
+  }
+  .page-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8;
+  }
+  .section-header {
+    @apply flex items-center justify-between mb-6;
+  }
+
+  /* Star rating */
+  .star-rating {
+    @apply flex items-center gap-0.5;
+  }
+  .star-filled {
+    @apply text-amber-400;
+  }
+  .star-empty {
+    @apply text-gray-200;
+  }
+
+  /* Notification dot */
+  .notification-dot {
+    @apply absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white;
+  }
+
+  /* Dropdown */
+  .dropdown-menu {
+    @apply absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-premium border border-gray-100
+           py-2 z-50 animate-slide-up;
+  }
+  .dropdown-item {
+    @apply flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-surface-50
+           transition-colors cursor-pointer;
+  }
+  .dropdown-divider {
+    @apply my-1 border-t border-gray-100;
   }
 }

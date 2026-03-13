@@ -159,6 +159,15 @@ async function seed() {
         location: "Agadir",
         bio: "Décoratrice d'intérieur à Agadir. Je vends mes trouvailles déco!",
       },
+      {
+        name: "Elkatri Ahmed",
+        email: "elkatriahmed@gmail.com",
+        password: "password123",
+        phone: "+212 600-000000",
+        location: "Casablanca",
+        bio: "Platform administrator account.",
+        role: "admin",
+      },
     ];
 
     // Upload avatars

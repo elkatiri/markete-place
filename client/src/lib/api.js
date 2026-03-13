@@ -79,4 +79,24 @@ export const userAPI = {
     }),
 };
 
+// Admin
+export const adminAPI = {
+  getStats: () => api.get("/admin/stats"),
+  getUsers: (params) => api.get("/admin/users", { params }),
+  updateUserRole: (id, role) => api.put(`/admin/users/${id}/role`, { role }),
+  deleteUser: (id) => api.delete(`/admin/users/${id}`),
+  getProducts: (params) => api.get("/admin/products", { params }),
+  deleteProduct: (id) => api.delete(`/admin/products/${id}`),
+  createCategory: (data) => api.post("/admin/categories", data),
+  deleteCategory: (id) => api.delete(`/admin/categories/${id}`),
+};
+
+// Reviews
+export const reviewAPI = {
+  create: (data) => api.post("/reviews", data),
+  getForProduct: (productId) => api.get(`/reviews/product/${productId}`),
+  getForSeller: (sellerId) => api.get(`/reviews/seller/${sellerId}`),
+  delete: (id) => api.delete(`/reviews/${id}`),
+};
+
 export default api;

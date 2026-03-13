@@ -85,38 +85,35 @@ export default function NewProductPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Sell a Product</h1>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Sell a Product</h1>
+        <p className="text-sm text-gray-400 mt-1">Fill in the details to list your item</p>
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Images */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Images (Max 5)
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <label className="block text-sm font-semibold text-gray-700 mb-3">
+            Photos <span className="text-gray-400 font-normal">(Max 5)</span>
           </label>
           <div className="flex flex-wrap gap-3">
             {previews.map((preview, index) => (
-              <div key={index} className="relative w-24 h-24 rounded-lg overflow-hidden border">
+              <div key={index} className="relative w-24 h-24 rounded-xl overflow-hidden border border-gray-200 group">
                 <img src={preview} alt="" className="w-full h-full object-cover" />
                 <button
                   type="button"
                   onClick={() => removeImage(index)}
-                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5"
+                  className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                 >
-                  <FiX size={14} />
+                  <FiX className="text-white" size={18} />
                 </button>
               </div>
             ))}
             {images.length < 5 && (
-              <label className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary-500 transition-colors">
-                <FiUpload className="text-gray-400" />
-                <span className="text-xs text-gray-400 mt-1">Add</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageChange}
-                  className="hidden"
-                />
+              <label className="w-24 h-24 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-primary-400 hover:bg-primary-50/50 transition-all">
+                <FiUpload className="text-gray-300" size={20} />
+                <span className="text-xs text-gray-400 mt-1">Upload</span>
+                <input type="file" accept="image/*" multiple onChange={handleImageChange} className="hidden" />
               </label>
             )}
           </div>
@@ -124,67 +121,29 @@ export default function NewProductPage() {
 
         {/* Title */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Title *
-          </label>
-          <input
-            type="text"
-            value={form.title}
-            onChange={(e) => setForm({ ...form, title: e.target.value })}
-            className="input-field"
-            placeholder="What are you selling?"
-            maxLength={100}
-            required
-          />
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Title *</label>
+          <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="input-field" placeholder="What are you selling?" maxLength={100} required />
         </div>
 
         {/* Description */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Description *
-          </label>
-          <textarea
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            className="input-field h-32 resize-none"
-            placeholder="Describe your product in detail..."
-            maxLength={2000}
-            required
-          />
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Description *</label>
+          <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="input-field h-32 resize-none" placeholder="Describe your product in detail..." maxLength={2000} required />
+          <p className="text-xs text-gray-400 mt-1 text-right">{form.description.length}/2000</p>
         </div>
 
         {/* Price & Category */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Price ($) *
-            </label>
-            <input
-              type="number"
-              value={form.price}
-              onChange={(e) => setForm({ ...form, price: e.target.value })}
-              className="input-field"
-              placeholder="0.00"
-              min="0"
-              step="0.01"
-              required
-            />
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Price ($) *</label>
+            <input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="input-field" placeholder="0.00" min="0" step="0.01" required />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Category *
-            </label>
-            <select
-              value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
-              className="input-field"
-              required
-            >
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Category *</label>
+            <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="input-field" required>
               <option value="">Select category</option>
               {categories.map((cat) => (
-                <option key={cat._id} value={cat._id}>
-                  {cat.icon} {cat.name}
-                </option>
+                <option key={cat._id} value={cat._id}>{cat.icon} {cat.name}</option>
               ))}
             </select>
           </div>
@@ -193,26 +152,12 @@ export default function NewProductPage() {
         {/* Location & Condition */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Location
-            </label>
-            <input
-              type="text"
-              value={form.location}
-              onChange={(e) => setForm({ ...form, location: e.target.value })}
-              className="input-field"
-              placeholder="City, State"
-            />
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Location</label>
+            <input type="text" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className="input-field" placeholder="City, State" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Condition
-            </label>
-            <select
-              value={form.condition}
-              onChange={(e) => setForm({ ...form, condition: e.target.value })}
-              className="input-field"
-            >
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Condition</label>
+            <select value={form.condition} onChange={(e) => setForm({ ...form, condition: e.target.value })} className="input-field">
               <option value="new">New</option>
               <option value="like-new">Like New</option>
               <option value="used">Used</option>
@@ -221,8 +166,13 @@ export default function NewProductPage() {
           </div>
         </div>
 
-        <button type="submit" disabled={loading} className="btn-primary w-full">
-          {loading ? "Publishing..." : "Publish Product"}
+        <button type="submit" disabled={loading} className="btn-primary w-full py-3">
+          {loading ? (
+            <span className="flex items-center justify-center gap-2">
+              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+              Publishing...
+            </span>
+          ) : "Publish Product"}
         </button>
       </form>
     </div>

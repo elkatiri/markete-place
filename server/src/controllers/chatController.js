@@ -48,6 +48,7 @@ exports.unblockUser = async (req, res) => {
   }
 };
 const Message = require("../models/Message");
+const Product = require("../models/Product");
 const User = require("../models/User");
 
 // Generate consistent conversation ID from two user IDs and optional product
@@ -91,11 +92,19 @@ exports.getConversations = async (req, res) => {
             ? msg.lastMessage.receiver
             : msg.lastMessage.sender;
 
-        const otherUser = await User.findById(otherUserId).select("name avatar");
+        const [otherUser, product] = await Promise.all([
+          User.findById(otherUserId).select("name avatar"),
+          msg.lastMessage.product
+            ? Product.findById(msg.lastMessage.product).select("title images price")
+            : null,
+        ]);
 
         return {
           conversationId: msg._id,
-          lastMessage: msg.lastMessage,
+          lastMessage: {
+            ...msg.lastMessage,
+            product,
+          },
           unreadCount: msg.unreadCount,
           otherUser,
         };
@@ -164,6 +173,7 @@ exports.sendMessage = async (req, res) => {
 
     await message.populate("sender", "name avatar");
     await message.populate("receiver", "name avatar");
+    await message.populate("product", "title images price");
 
     res.status(201).json({ success: true, message, conversationId });
   } catch (error) {

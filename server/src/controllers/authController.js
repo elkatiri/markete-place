@@ -23,7 +23,13 @@ exports.register = async (req, res) => {
     res.status(201).json({
       success: true,
       token,
-      user: { _id: user._id, name: user.name, email: user.email, avatar: user.avatar },
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar,
+        role: user.role,
+      },
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -50,7 +56,13 @@ exports.login = async (req, res) => {
     res.json({
       success: true,
       token,
-      user: { _id: user._id, name: user.name, email: user.email, avatar: user.avatar },
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar,
+        role: user.role,
+      },
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
