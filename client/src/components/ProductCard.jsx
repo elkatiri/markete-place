@@ -70,24 +70,24 @@ export default function ProductCard({ product }) {
           </div>
 
           {/* Content */}
-          <div className="p-4">
+          <div className="p-3 sm:p-4">
             <div className="flex items-start justify-between gap-2">
-              <h3 className="font-semibold text-gray-800 text-sm leading-tight line-clamp-2 group-hover:text-primary-600 transition-colors">
+              <h3 className="line-clamp-2 text-xs font-semibold leading-tight text-gray-800 transition-colors group-hover:text-primary-600 sm:text-sm">
                 {product.title}
               </h3>
             </div>
-            <p className="text-lg font-bold text-primary-600 mt-2">
+            <p className="mt-2 text-base font-bold text-primary-600 sm:text-lg">
               ${product.price?.toLocaleString()}
             </p>
-            <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+            <div className="mt-3 flex flex-col gap-2 border-t border-gray-100 pt-3 sm:flex-row sm:items-center sm:justify-between">
               {product.location && (
-                <span className="text-xs text-gray-400 flex items-center gap-1">
+                <span className="flex items-center gap-1 text-[11px] text-gray-400 sm:text-xs">
                   <FiMapPin size={11} />
-                  <span className="truncate max-w-[100px]">{product.location}</span>
+                  <span className="truncate max-w-[88px] sm:max-w-[100px]">{product.location}</span>
                 </span>
               )}
               {product.createdAt && (
-                <span className="text-xs text-gray-400 flex items-center gap-1">
+                <span className="flex items-center gap-1 text-[11px] text-gray-400 sm:text-xs">
                   <FiClock size={11} />
                   {formatDistanceToNow(new Date(product.createdAt), { addSuffix: true })}
                 </span>
@@ -105,10 +105,10 @@ export default function ProductCard({ product }) {
       {/* Floating like button */}
       <button
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLiked(!liked); }}
-        className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all z-10 shadow-sm ${
+        className={`absolute top-3 right-3 z-10 flex h-8 w-8 items-center justify-center rounded-full shadow-sm transition-all ${
           liked
             ? "bg-red-500 text-white scale-110"
-            : "bg-white/80 backdrop-blur-sm text-gray-500 hover:text-red-500 hover:bg-white opacity-0 group-hover:opacity-100"
+            : "bg-white/85 text-gray-500 backdrop-blur-sm opacity-100 hover:bg-white hover:text-red-500 sm:opacity-0 sm:group-hover:opacity-100"
         }`}
       >
         <FiHeart size={14} fill={liked ? "currentColor" : "none"} />

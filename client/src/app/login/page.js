@@ -28,33 +28,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-[90vh] flex">
-      {/* Left branded panel */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary-600 via-primary-700 to-primary-900 relative overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-white/5" />
-          <div className="absolute -bottom-20 -left-20 w-72 h-72 rounded-full bg-white/5" />
-          <div className="absolute top-1/3 right-1/4 w-48 h-48 rounded-full bg-primary-500/20 blur-3xl" />
-        </div>
-        <div className="relative flex flex-col justify-center px-16 text-white">
-          <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center mb-8">
-            <span className="text-2xl font-bold">M</span>
-          </div>
-          <h2 className="text-3xl font-bold leading-tight">Welcome back to<br/>Marketplace</h2>
-          <p className="text-primary-200 mt-4 text-lg leading-relaxed max-w-md">
-            Sign in to manage your listings, chat with buyers, and discover amazing deals.
-          </p>
-          <div className="flex items-center gap-6 mt-12 text-primary-200">
-            <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-emerald-400" /> Secure login</div>
-            <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-emerald-400" /> No ads</div>
-            <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-emerald-400" /> Free forever</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Right form panel */}
-      <div className="flex-1 flex items-center justify-center px-4 sm:px-8 bg-surface-50">
-        <div className="w-full max-w-md">
+    <div className="mobile-screen flex min-h-[calc(100dvh-5.5rem)] items-center justify-center">
+      <div className="mobile-card w-full max-w-md border border-white/80 p-6 shadow-xl shadow-slate-900/5 sm:p-10">
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-gray-900">Sign in to your account</h1>
             <p className="text-gray-400 mt-2">Enter your credentials to continue</p>
@@ -83,7 +58,6 @@ export default function LoginPage() {
             Don&apos;t have an account?{" "}
             <Link href="/register" className="text-primary-600 hover:text-primary-700 font-semibold">Create one</Link>
           </p>
-        </div>
       </div>
     </div>
   );

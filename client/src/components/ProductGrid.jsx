@@ -7,11 +7,11 @@ import Link from "next/link";
 export default function ProductGrid({ products, loading }) {
   if (loading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
         {[...Array(8)].map((_, i) => (
           <div key={i} className="card animate-pulse" style={{ animationDelay: `${i * 80}ms` }}>
             <div className="aspect-[4/3] bg-gray-200" />
-            <div className="p-4 space-y-3">
+            <div className="space-y-3 p-3 sm:p-4">
               <div className="h-4 bg-gray-200 rounded-lg w-4/5" />
               <div className="h-5 bg-gray-200 rounded-lg w-2/5" />
               <div className="h-px bg-gray-100" />
@@ -44,7 +44,7 @@ export default function ProductGrid({ products, loading }) {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+    <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
       {products.map((product, i) => (
         <div key={product._id} className="animate-fade-in" style={{ animationDelay: `${i * 50}ms` }}>
           <ProductCard product={product} />

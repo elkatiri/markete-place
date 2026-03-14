@@ -84,7 +84,7 @@ export default function NewProductPage() {
   if (authLoading) return null;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
+    <div className="mobile-screen max-w-2xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Sell a Product</h1>
         <p className="text-sm text-gray-400 mt-1">Fill in the details to list your item</p>
@@ -92,13 +92,13 @@ export default function NewProductPage() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Images */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <div className="mobile-card border border-white/80 p-5">
           <label className="block text-sm font-semibold text-gray-700 mb-3">
             Photos <span className="text-gray-400 font-normal">(Max 5)</span>
           </label>
           <div className="flex flex-wrap gap-3">
             {previews.map((preview, index) => (
-              <div key={index} className="relative w-24 h-24 rounded-xl overflow-hidden border border-gray-200 group">
+              <div key={index} className="relative h-20 w-20 overflow-hidden rounded-xl border border-gray-200 group sm:h-24 sm:w-24">
                 <img src={preview} alt="" className="w-full h-full object-cover" />
                 <button
                   type="button"
@@ -110,7 +110,7 @@ export default function NewProductPage() {
               </div>
             ))}
             {images.length < 5 && (
-              <label className="w-24 h-24 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-primary-400 hover:bg-primary-50/50 transition-all">
+              <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 transition-all hover:border-primary-400 hover:bg-primary-50/50 sm:h-24 sm:w-24">
                 <FiUpload className="text-gray-300" size={20} />
                 <span className="text-xs text-gray-400 mt-1">Upload</span>
                 <input type="file" accept="image/*" multiple onChange={handleImageChange} className="hidden" />
@@ -133,7 +133,7 @@ export default function NewProductPage() {
         </div>
 
         {/* Price & Category */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Price ($) *</label>
             <input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="input-field" placeholder="0.00" min="0" step="0.01" required />
@@ -150,7 +150,7 @@ export default function NewProductPage() {
         </div>
 
         {/* Location & Condition */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Location</label>
             <input type="text" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className="input-field" placeholder="City, State" />

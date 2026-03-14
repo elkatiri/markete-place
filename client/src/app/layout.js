@@ -9,16 +9,22 @@ export const metadata = {
   description: "A premium online marketplace where users can sell and buy products",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#2563eb",
+};
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className="flex flex-col min-h-screen bg-surface-50">
+      <body className="flex min-h-screen flex-col">
         <AuthProvider>
           <Navbar />
-          <main className="flex-1">{children}</main>
+          <main className="mobile-app-shell flex-1 pb-[calc(6.5rem+env(safe-area-inset-bottom))] md:pb-0">{children}</main>
           <Footer />
           <Toaster
-            position="top-right"
+            position="top-center"
             toastOptions={{
               style: { borderRadius: "12px", padding: "12px 16px", fontSize: "14px" },
               success: { iconTheme: { primary: "#059669", secondary: "#fff" } },

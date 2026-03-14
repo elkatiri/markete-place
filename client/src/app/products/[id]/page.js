@@ -85,7 +85,7 @@ export default function ProductDetailPage() {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="mobile-screen max-w-6xl mx-auto">
         <div className="grid md:grid-cols-2 gap-8">
           <div className="aspect-square bg-gray-100 rounded-2xl animate-pulse" />
           <div className="space-y-4">
@@ -112,14 +112,14 @@ export default function ProductDetailPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
+    <div className="mobile-screen max-w-6xl mx-auto">
+      <div className="grid gap-6 md:grid-cols-2 lg:gap-12">
         {/* Images */}
         <ImageGallery images={product.images} />
 
         {/* Details */}
         <div>
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight">
                 {product.title}
@@ -137,7 +137,7 @@ export default function ProductDetailPage() {
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 self-start sm:flex-shrink-0">
               <button onClick={handleShare} className="p-2 rounded-xl border border-gray-200 text-gray-400 hover:text-gray-600 hover:border-gray-300 transition-all">
                 <FiShare2 size={16} />
               </button>
@@ -181,8 +181,8 @@ export default function ProductDetailPage() {
 
           {/* Seller Info */}
           {product.seller && (
-            <div className="mt-6 p-4 bg-white rounded-xl border border-gray-200">
-              <div className="flex items-center gap-3">
+            <div className="mobile-card mt-6 border border-white/80 p-4">
+              <div className="flex flex-wrap items-center gap-3">
                 <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center overflow-hidden">
                   {product.seller.avatar ? (
                     <img src={product.seller.avatar} alt="" className="w-12 h-12 rounded-full object-cover" />
@@ -190,9 +190,9 @@ export default function ProductDetailPage() {
                     <FiUser className="text-primary-600" size={20} />
                   )}
                 </div>
-                <div className="flex-1">
+                <div className="min-w-0 flex-1">
                   <p className="font-semibold text-gray-900">{product.seller.name}</p>
-                  <div className="flex items-center gap-3 text-xs text-gray-400">
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-gray-400">
                     {product.seller.location && <span>{product.seller.location}</span>}
                     <span>Member since {new Date(product.seller.createdAt).toLocaleDateString()}</span>
                   </div>
@@ -205,7 +205,7 @@ export default function ProductDetailPage() {
           {/* Actions */}
           <div className="mt-6 space-y-3">
             {isOwner ? (
-              <div className="flex gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row">
                 <Link href={`/products/${product._id}/edit`} className="btn-primary flex items-center gap-2 flex-1 justify-center">
                   <FiEdit size={16} /> Edit Product
                 </Link>
@@ -230,7 +230,7 @@ export default function ProductDetailPage() {
 
         {/* Submit review */}
         {user && !isOwner && !hasReviewed && (
-          <form onSubmit={handleReviewSubmit} className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+          <form onSubmit={handleReviewSubmit} className="mobile-card mb-6 border border-white/80 p-5">
             <h3 className="text-sm font-semibold text-gray-900 mb-3">Write a Review</h3>
             <div className="flex items-center gap-1 mb-3">
               {[1, 2, 3, 4, 5].map((s) => (
@@ -264,8 +264,8 @@ export default function ProductDetailPage() {
         ) : (
           <div className="space-y-4">
             {reviews.map((review) => (
-              <div key={review._id} className="bg-white rounded-xl border border-gray-200 p-4">
-                <div className="flex items-start justify-between">
+              <div key={review._id} className="mobile-card border border-white/80 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center overflow-hidden">
                       {review.reviewer?.avatar ? (

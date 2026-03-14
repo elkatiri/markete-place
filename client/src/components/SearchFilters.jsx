@@ -45,7 +45,7 @@ export default function SearchFilters() {
   return (
     <div className="mb-6">
       {/* Main search bar */}
-      <div className="flex gap-2 mb-3">
+      <div className="mb-3 flex gap-2">
         <div className="relative flex-1">
           <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input
@@ -58,7 +58,7 @@ export default function SearchFilters() {
         </div>
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border font-medium text-sm transition-all ${
+          className={`flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-medium transition-all ${
             showFilters
               ? "bg-primary-50 border-primary-200 text-primary-700"
               : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"
@@ -80,8 +80,8 @@ export default function SearchFilters() {
           showFilters ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
         }`}
       >
-        <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
+        <div className="mobile-card border border-gray-200 p-4 shadow-sm">
+          <div className="mb-3 flex items-center justify-between gap-3">
             <span className="text-sm font-semibold text-gray-700">Refine Results</span>
             {hasActiveFilters && (
               <button onClick={clearFilters} className="text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">
@@ -90,7 +90,7 @@ export default function SearchFilters() {
             )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
             {/* Category */}
             <div className="relative">
               <select
@@ -108,8 +108,8 @@ export default function SearchFilters() {
 
             {/* Price Range */}
             <div className="flex gap-2">
-              <input type="number" placeholder="Min $" value={filters.minPrice} onChange={(e) => setFilters({ ...filters, minPrice: e.target.value })} className="input-field w-1/2 text-sm" min="0" />
-              <input type="number" placeholder="Max $" value={filters.maxPrice} onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value })} className="input-field w-1/2 text-sm" min="0" />
+              <input type="number" placeholder="Min $" value={filters.minPrice} onChange={(e) => setFilters({ ...filters, minPrice: e.target.value })} className="input-field flex-1 text-sm" min="0" />
+              <input type="number" placeholder="Max $" value={filters.maxPrice} onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value })} className="input-field flex-1 text-sm" min="0" />
             </div>
 
             {/* Location */}

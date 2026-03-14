@@ -189,9 +189,10 @@ export default function DashboardPage() {
       const { data } = await userAPI.updateAvatar(formData);
       setUser(data.user);
       toast.success("Avatar updated");
-    } catch {
-      toast.error("Failed to upload avatar");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to upload avatar");
     } finally {
+      e.target.value = "";
       setAvatarUploading(false);
     }
   };
@@ -236,14 +237,14 @@ export default function DashboardPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         {/* ─── Header ─── */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-primary-600 via-primary-700 to-primary-800 p-8 mb-8 shadow-premium">
+        <div className="relative mb-8 overflow-hidden rounded-[2rem] bg-gradient-to-r from-primary-600 via-primary-700 to-primary-800 p-5 shadow-premium sm:p-8">
           {/* Decorative circles */}
           <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-white/5" />
           <div className="absolute -bottom-16 -left-16 w-48 h-48 rounded-full bg-white/5" />
           <div className="absolute top-1/2 right-1/3 w-32 h-32 rounded-full bg-white/[0.03]" />
 
-          <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-5">
+          <div className="relative flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+            <div className="flex items-center gap-4 sm:gap-5">
               <div className="relative group">
                 <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm ring-2 ring-white/30 overflow-hidden flex items-center justify-center text-white text-2xl font-bold">
                   {user?.avatar ? (
@@ -266,10 +267,10 @@ export default function DashboardPage() {
                 )}
               </div>
             </div>
-            <div className="flex gap-3">
+            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
               <Link
                 href="/chat"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white text-sm font-semibold transition-all border border-white/10"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-white/20 backdrop-blur-sm"
               >
                 <FiMessageSquare size={16} />
                 Messages
@@ -281,7 +282,7 @@ export default function DashboardPage() {
               </Link>
               <Link
                 href="/products/new"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-primary-700 text-sm font-bold transition-all hover:shadow-lg hover:shadow-white/20 active:scale-[0.97]"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-primary-700 transition-all hover:shadow-lg hover:shadow-white/20 active:scale-[0.97]"
               >
                 <FiPlus size={16} />
                 New Listing
@@ -291,12 +292,12 @@ export default function DashboardPage() {
         </div>
 
         {/* ─── Tab Navigation ─── */}
-        <div className="flex gap-1 p-1 bg-gray-100/80 rounded-2xl mb-8 w-fit">
+        <div className="hide-scrollbar mb-8 flex w-full gap-1 overflow-x-auto rounded-2xl bg-gray-100/80 p-1 sm:w-fit">
           {tabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+              className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 sm:px-5 ${
                 tab === t.id
                   ? "bg-white text-gray-900 shadow-sm"
                   : "text-gray-500 hover:text-gray-700"
@@ -746,9 +747,9 @@ export default function DashboardPage() {
             PROFILE TAB
         ════════════════════════════════════════════════════ */}
         {tab === "profile" && (
-          <div className="animate-fade-in grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="animate-fade-in grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
             {/* Profile Card */}
-            <div className="card p-8 text-center">
+            <div className="card p-6 text-center sm:p-8">
               <div className="relative inline-block">
                 <div className="w-28 h-28 mx-auto rounded-3xl bg-gradient-to-br from-primary-100 to-primary-200 overflow-hidden ring-4 ring-white shadow-lg flex items-center justify-center text-4xl font-bold text-primary-600">
                   {user?.avatar ? (
@@ -761,7 +762,7 @@ export default function DashboardPage() {
                   <FiCamera size={16} />
                   <input
                     type="file"
-                    accept="image/*"
+                    accept=".jpg,.jpeg,.png,.webp,.gif,.avif,.heic,.heif,image/*"
                     onChange={handleAvatarUpload}
                     className="hidden"
                     disabled={avatarUploading}
@@ -797,7 +798,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Edit Form */}
-            <div className="lg:col-span-2 card p-8">
+            <div className="card p-6 sm:p-8 lg:col-span-2">
               <div className="mb-8">
                 <h2 className="text-xl font-bold text-gray-900">Edit Profile</h2>
                 <p className="text-sm text-gray-400 mt-1">Update your personal information</p>

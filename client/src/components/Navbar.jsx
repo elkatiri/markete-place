@@ -52,19 +52,32 @@ export default function Navbar() {
   useEffect(() => { setMenuOpen(false); setAvatarMenuOpen(false); }, [pathname]);
 
   const isActive = (path) => pathname === path;
+  const isSectionActive = (path) => pathname === path || pathname.startsWith(`${path}/`);
+  const mobileNavItems = [
+    { href: "/", label: "Home", icon: FiHome, active: pathname === "/" },
+    { href: user ? "/chat" : "/login", label: "Chats", icon: FiMessageSquare, active: isSectionActive("/chat"), badge: unreadConv > 0 ? unreadConv : null },
+    { href: user ? "/products/new" : "/login", label: "Sell", icon: FiPlus, active: isSectionActive("/products/new"), primary: true },
+    { href: user ? "/dashboard" : "/login", label: user ? "Profile" : "Account", icon: FiUser, active: isSectionActive("/dashboard") || isSectionActive("/login") || isSectionActive("/register") },
+  ];
 
   return (
-    <nav className="bg-white/80 backdrop-blur-xl border-b border-gray-200/60 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+    <>
+      <nav className="sticky top-0 z-50 border-b border-gray-200/60 bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/70">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex h-[4.5rem] items-center justify-between gap-3 md:h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group flex-shrink-0">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:shadow-primary-500/20 transition-all">
-              <FiPackage className="text-white" size={18} />
+          <Link href="/" className="group flex flex-shrink-0 items-center gap-2.5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-sm transition-all group-hover:shadow-md group-hover:shadow-primary-500/20">
+            <span className="text-lg font-bold text-white">M</span>
             </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent hidden sm:block">
+            <div className="flex flex-col">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary-400 md:hidden">
+                Android view
+              </span>
+              <span className="hidden bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-xl font-bold text-transparent sm:block md:inline-block">
               Marketplace
-            </span>
+              </span>
+            </div>
           </Link>
 
           {/* Search - Desktop */}
@@ -183,59 +196,98 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Mobile menu button */}
-          <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden btn-icon">
-            {menuOpen ? <FiX size={22} /> : <FiMenu size={22} />}
-          </button>
-        </div>
-
-        {/* Mobile menu */}
-        {menuOpen && (
-          <div className="md:hidden pb-4 border-t border-gray-100 pt-3 animate-slide-down">
-            <form action="/" method="GET" className="relative mb-4">
-              <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-              <input type="text" name="search" placeholder="Search products..." className="input-field pl-10" />
-            </form>
-
-            {user ? (
-              <div className="space-y-1">
-                {/* User card */}
-                <div className="flex items-center gap-3 p-3 bg-surface-50 rounded-xl mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-sm font-bold overflow-hidden">
-                    {user.avatar ? <img src={user.avatar} alt="" className="w-full h-full object-cover" /> : user.name?.charAt(0)?.toUpperCase() || "U"}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm text-gray-900">{user.name}</p>
-                    <p className="text-xs text-gray-400">{user.email}</p>
-                  </div>
-                </div>
-
-                <Link href="/" className="dropdown-item rounded-xl"><FiHome size={16} /> Home</Link>
-                <Link href="/products/new" className="dropdown-item rounded-xl"><FiPlus size={16} /> Sell Product</Link>
-                <Link href="/chat" className="dropdown-item rounded-xl">
-                  <FiMessageSquare size={16} /> Messages
-                  {unreadConv > 0 && <span className="ml-auto badge-danger text-[10px]">{unreadConv}</span>}
+            <div className="flex items-center gap-2 md:hidden">
+              {user && (
+                <Link href="/chat" className={`relative btn-icon ${isSectionActive("/chat") ? "bg-primary-50 text-primary-600" : ""}`}>
+                  <FiMessageSquare size={20} />
+                  {unreadConv > 0 && <span className="notification-dot" />}
                 </Link>
-                <Link href="/dashboard" className="dropdown-item rounded-xl"><FiGrid size={16} /> Dashboard</Link>
-                {user.role === "admin" && (
-                  <Link href="/admin" className="dropdown-item rounded-xl text-amber-700"><FiShield size={16} /> Admin Panel</Link>
-                )}
-                <div className="divider my-2" />
-                <button onClick={logout} className="dropdown-item rounded-xl text-red-600 w-full">
-                  <FiLogOut size={16} /> Sign Out
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-2">
-                <Link href="/login" className="btn-secondary text-center text-sm">Sign In</Link>
-                <Link href="/register" className="btn-primary text-center text-sm">Get Started</Link>
-              </div>
-            )}
+              )}
+              <button onClick={() => setMenuOpen(!menuOpen)} className="btn-icon bg-white/70 shadow-sm shadow-slate-900/5">
+                {menuOpen ? <FiX size={22} /> : <FiMenu size={22} />}
+              </button>
+            </div>
           </div>
-        )}
+
+          {/* Mobile menu */}
+          {menuOpen && (
+            <div className="animate-slide-down border-t border-gray-100 pb-4 pt-3 md:hidden">
+              <div className="mobile-card overflow-hidden p-3">
+                <form action="/" method="GET" className="relative mb-4">
+              <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                  <input type="text" name="search" placeholder="Search products..." className="input-field pl-10" />
+                </form>
+
+                {user ? (
+                  <div className="space-y-1">
+                {/* User card */}
+                    <div className="mb-3 flex items-center gap-3 rounded-[1.25rem] bg-surface-50 p-3">
+                      <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-primary-400 to-primary-600 text-sm font-bold text-white">
+                    {user.avatar ? <img src={user.avatar} alt="" className="w-full h-full object-cover" /> : user.name?.charAt(0)?.toUpperCase() || "U"}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">{user.name}</p>
+                        <p className="text-xs text-gray-400">{user.email}</p>
+                      </div>
+                    </div>
+
+                    <Link href="/" className="dropdown-item rounded-xl"><FiHome size={16} /> Home</Link>
+                    <Link href="/products/new" className="dropdown-item rounded-xl"><FiPlus size={16} /> Sell Product</Link>
+                    <Link href="/chat" className="dropdown-item rounded-xl">
+                      <FiMessageSquare size={16} /> Messages
+                      {unreadConv > 0 && <span className="ml-auto badge-danger text-[10px]">{unreadConv}</span>}
+                    </Link>
+                    <Link href="/dashboard" className="dropdown-item rounded-xl"><FiGrid size={16} /> Dashboard</Link>
+                    {user.role === "admin" && (
+                      <Link href="/admin" className="dropdown-item rounded-xl text-amber-700"><FiShield size={16} /> Admin Panel</Link>
+                    )}
+                    <div className="divider my-2" />
+                    <button onClick={logout} className="dropdown-item rounded-xl text-red-600 w-full">
+                      <FiLogOut size={16} /> Sign Out
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    <Link href="/login" className="btn-secondary text-center text-sm">Sign In</Link>
+                    <Link href="/register" className="btn-primary text-center text-sm">Get Started</Link>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </nav>
+
+      <div className="mobile-bottom-nav">
+        <div className="mobile-bottom-nav__inner">
+          {mobileNavItems.map((item) => {
+            const Icon = item.icon;
+
+            return (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={`relative flex min-w-[68px] flex-1 flex-col items-center gap-1 rounded-2xl px-2 py-2 text-[11px] font-semibold transition-all ${
+                  item.primary
+                    ? "-mt-6 mx-1 rounded-[1.4rem] bg-primary-600 px-4 py-3 text-white shadow-lg shadow-primary-600/30"
+                    : item.active
+                      ? "bg-primary-50 text-primary-700"
+                      : "text-gray-400"
+                }`}
+              >
+                <Icon size={item.primary ? 20 : 18} />
+                <span>{item.label}</span>
+                {item.badge ? (
+                  <span className="absolute right-3 top-1 rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                    {item.badge}
+                  </span>
+                ) : null}
+              </Link>
+            );
+          })}
+        </div>
       </div>
-    </nav>
+    </>
   );
 }
-;
 

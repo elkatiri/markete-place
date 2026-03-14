@@ -24,7 +24,7 @@ export default function ImageGallery({ images }) {
     <>
       <div className="space-y-3">
         {/* Main image */}
-        <div className="relative aspect-square bg-gray-50 rounded-2xl overflow-hidden group border border-gray-100">
+        <div className="relative aspect-square overflow-hidden rounded-[1.75rem] border border-gray-100 bg-gray-50 group">
           <Image
             src={images[current].url}
             alt="Product"
@@ -37,7 +37,7 @@ export default function ImageGallery({ images }) {
           {/* Fullscreen button */}
           <button
             onClick={() => setFullscreen(true)}
-            className="absolute top-3 right-3 bg-black/40 hover:bg-black/60 text-white p-2 rounded-xl opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm"
+            className="absolute top-3 right-3 rounded-xl bg-black/45 p-2 text-white opacity-100 transition-all backdrop-blur-sm hover:bg-black/60 sm:opacity-0 sm:group-hover:opacity-100"
           >
             <FiMaximize2 size={16} />
           </button>
@@ -53,13 +53,13 @@ export default function ImageGallery({ images }) {
             <>
               <button
                 onClick={prev}
-                className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-2 rounded-xl shadow-lg opacity-0 group-hover:opacity-100 transition-all"
+                className="absolute left-2 top-1/2 -translate-y-1/2 rounded-xl bg-white/90 p-2 shadow-lg transition-all hover:bg-white sm:opacity-0 sm:group-hover:opacity-100"
               >
                 <FiChevronLeft size={18} />
               </button>
               <button
                 onClick={next}
-                className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-2 rounded-xl shadow-lg opacity-0 group-hover:opacity-100 transition-all"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-xl bg-white/90 p-2 shadow-lg transition-all hover:bg-white sm:opacity-0 sm:group-hover:opacity-100"
               >
                 <FiChevronRight size={18} />
               </button>
@@ -69,12 +69,12 @@ export default function ImageGallery({ images }) {
 
         {/* Thumbnails */}
         {images.length > 1 && (
-          <div className="flex gap-2 overflow-x-auto pb-1">
+          <div className="hide-scrollbar flex gap-2 overflow-x-auto pb-1">
             {images.map((img, index) => (
               <button
                 key={index}
                 onClick={() => setCurrent(index)}
-                className={`relative w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 border-2 transition-all ${
+                className={`relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl border-2 transition-all sm:h-18 sm:w-18 ${
                   current === index
                     ? "border-primary-600 ring-2 ring-primary-200 scale-105"
                     : "border-transparent opacity-60 hover:opacity-100"
@@ -89,8 +89,8 @@ export default function ImageGallery({ images }) {
 
       {/* Fullscreen lightbox */}
       {fullscreen && (
-        <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center" onClick={() => setFullscreen(false)}>
-          <button className="absolute top-4 right-4 text-white/70 hover:text-white p-2 z-10" onClick={() => setFullscreen(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95" onClick={() => setFullscreen(false)}>
+          <button className="absolute right-4 top-[calc(1rem+env(safe-area-inset-top))] z-10 p-2 text-white/70 hover:text-white" onClick={() => setFullscreen(false)}>
             <FiX size={24} />
           </button>
           <div className="relative w-full h-full max-w-5xl max-h-[85vh] mx-4" onClick={(e) => e.stopPropagation()}>
