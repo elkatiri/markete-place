@@ -19,7 +19,8 @@ const storage = new CloudinaryStorage({
 
 const upload = multer({ storage });
 
-const allowedAvatarExtensions = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif", ".heic", ".heif"];
+const allowedAvatarExtensions = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"];
+const allowedAvatarMimeTypes = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"];
 
 const avatarUpload = multer({
   storage: multer.memoryStorage(),
@@ -27,10 +28,12 @@ const avatarUpload = multer({
   fileFilter: (_req, file, cb) => {
     const lowerName = file.originalname.toLowerCase();
     const hasAllowedExtension = allowedAvatarExtensions.some((ext) => lowerName.endsWith(ext));
-    const isImageMimeType = typeof file.mimetype === "string" && file.mimetype.startsWith("image/");
+    const hasAllowedMimeType = allowedAvatarMimeTypes.includes(file.mimetype);
 
-    if (!isImageMimeType && !hasAllowedExtension) {
-      cb(new Error("Please upload a valid image file"));
+    if (!hasAllowedMimeType && !hasAllowedExtension) {
+      const error = new Error("Please upload a JPG, PNG, WEBP, GIF, or AVIF image");
+      error.status = 400;
+      cb(error);
       return;
     }
     cb(null, true);

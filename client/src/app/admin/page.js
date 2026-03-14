@@ -35,13 +35,13 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-surface-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+      <div className="mobile-screen max-w-7xl mx-auto sm:px-6">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
           <p className="text-sm text-gray-500 mt-1">Manage your marketplace platform</p>
         </div>
 
-        <div className="flex gap-1 bg-white rounded-xl border border-gray-200 p-1 mb-6 overflow-x-auto">
+        <div className="hide-scrollbar mb-6 flex gap-1 overflow-x-auto rounded-xl border border-gray-200 bg-white p-1">
           {TABS.map((t) => {
             const Icon = t.icon;
             return (
@@ -108,14 +108,14 @@ function OverviewPanel() {
         })}
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
+      <div className="mobile-card border border-white/80 p-5">
         <h3 className="font-semibold text-gray-900 mb-4">Products by Category</h3>
         <div className="space-y-3">
           {stats.productsByCategory.map((cat, i) => {
             const max = stats.productsByCategory[0]?.count || 1;
             return (
               <div key={i} className="flex items-center gap-3">
-                <span className="text-sm text-gray-600 w-32 truncate">{cat.name || "Uncategorized"}</span>
+                <span className="w-24 shrink-0 truncate text-sm text-gray-600 sm:w-32">{cat.name || "Uncategorized"}</span>
                 <div className="flex-1 bg-gray-100 rounded-full h-2.5 overflow-hidden">
                   <div className="bg-primary-500 h-full rounded-full transition-all" style={{ width: `${(cat.count / max) * 100}%` }} />
                 </div>
@@ -184,7 +184,7 @@ function UsersPanel() {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200">
+    <div className="mobile-card overflow-hidden border border-white/80">
       <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
         <h3 className="font-semibold text-gray-900">Users</h3>
         <div className="relative w-full sm:w-64">
@@ -286,11 +286,11 @@ function ProductsPanel() {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200">
+    <div className="mobile-card overflow-hidden border border-white/80">
       <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
         <h3 className="font-semibold text-gray-900">Products</h3>
-        <div className="flex gap-2 w-full sm:w-auto">
-          <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} className="input-field text-sm !py-2 w-32">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} className="input-field text-sm !py-2 w-full sm:w-32">
             <option value="">All Status</option>
             <option value="active">Active</option>
             <option value="sold">Sold</option>
@@ -405,7 +405,7 @@ function CategoriesPanel() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h3 className="font-semibold text-gray-900">Categories</h3>
         <button onClick={() => setShowAdd(!showAdd)} className="btn-primary text-sm flex items-center gap-1.5">
           <FiPlus size={14} /> Add Category
@@ -413,15 +413,15 @@ function CategoriesPanel() {
       </div>
 
       {showAdd && (
-        <form onSubmit={handleAdd} className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col sm:flex-row gap-3">
+        <form onSubmit={handleAdd} className="mobile-card border border-white/80 p-4 flex flex-col sm:flex-row gap-3">
           <input type="text" placeholder="Name" value={newCat.name} onChange={(e) => setNewCat({ ...newCat, name: e.target.value })} className="input-field text-sm flex-1" required />
-          <input type="text" placeholder="Icon (emoji)" value={newCat.icon} onChange={(e) => setNewCat({ ...newCat, icon: e.target.value })} className="input-field text-sm w-24" />
+          <input type="text" placeholder="Icon (emoji)" value={newCat.icon} onChange={(e) => setNewCat({ ...newCat, icon: e.target.value })} className="input-field text-sm w-full sm:w-24" />
           <input type="text" placeholder="Description" value={newCat.description} onChange={(e) => setNewCat({ ...newCat, description: e.target.value })} className="input-field text-sm flex-1" />
           <button type="submit" className="btn-primary text-sm whitespace-nowrap">Create</button>
         </form>
       )}
 
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="mobile-card overflow-hidden border border-white/80">
         {loading ? (
           <div className="p-8 text-center text-gray-400">Loading...</div>
         ) : categories.length === 0 ? (

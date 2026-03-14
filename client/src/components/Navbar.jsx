@@ -8,8 +8,8 @@ import { getSocket } from "@/lib/socket";
 import { useAuth } from "@/context/AuthContext";
 import {
   FiMenu, FiX, FiPlus, FiMessageSquare, FiUser, FiLogOut,
-  FiSearch, FiGrid, FiSettings, FiShield, FiChevronDown,
-  FiHome, FiBell, FiPackage, FiHeart,
+  FiSearch, FiGrid, FiShield, FiChevronDown,
+  FiHome, FiBell,
 } from "react-icons/fi";
 
 export default function Navbar() {

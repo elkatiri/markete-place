@@ -1,6 +1,28 @@
 const User = require("../models/User");
 const { cloudinary } = require("../config/cloudinary");
 
+function uploadAvatarBuffer(file) {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: "marketplace/avatars",
+        transformation: [{ width: 800, height: 800, crop: "limit" }],
+        resource_type: "image",
+      },
+      (error, result) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve(result);
+      }
+    );
+
+    uploadStream.end(file.buffer);
+  });
+}
+
 // Get user profile
 exports.getProfile = async (req, res) => {
   try {
@@ -38,18 +60,21 @@ exports.updateAvatar = async (req, res) => {
       return res.status(400).json({ success: false, message: "No image provided" });
     }
 
-    const dataUri = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
-    const uploadResult = await cloudinary.uploader.upload(dataUri, {
-      folder: "marketplace/avatars",
-      transformation: [{ width: 800, height: 800, crop: "limit" }],
-      resource_type: "image",
-    });
+    const existingUser = await User.findById(req.user._id).select("avatar avatarPublicId");
+    const uploadResult = await uploadAvatarBuffer(req.file);
 
     const user = await User.findByIdAndUpdate(
       req.user._id,
-      { avatar: uploadResult.secure_url },
+      {
+        avatar: uploadResult.secure_url,
+        avatarPublicId: uploadResult.public_id,
+      },
       { new: true }
     );
+
+    if (existingUser?.avatarPublicId && existingUser.avatarPublicId !== uploadResult.public_id) {
+      await cloudinary.uploader.destroy(existingUser.avatarPublicId, { resource_type: "image" });
+    }
 
     res.json({ success: true, user });
   } catch (error) {

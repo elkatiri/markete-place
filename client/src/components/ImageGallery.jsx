@@ -74,7 +74,7 @@ export default function ImageGallery({ images }) {
               <button
                 key={index}
                 onClick={() => setCurrent(index)}
-                className={`relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl border-2 transition-all sm:h-18 sm:w-18 ${
+                className={`relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl border-2 transition-all sm:h-20 sm:w-20 ${
                   current === index
                     ? "border-primary-600 ring-2 ring-primary-200 scale-105"
                     : "border-transparent opacity-60 hover:opacity-100"
