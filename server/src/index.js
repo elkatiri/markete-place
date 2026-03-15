@@ -1,9 +1,11 @@
+const dotenv = require("dotenv");
 const express = require("express");
 const http = require("http");
 const cors = require("cors");
-const dotenv = require("dotenv");
 const { Server } = require("socket.io");
 const connectDB = require("./config/db");
+
+dotenv.config();
 const setupChatSocket = require("./socket/chatSocket");
 
 // Routes

@@ -1,23 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { chatAPI } from "@/lib/api";
 import { getSocket } from "@/lib/socket";
 import { useAuth } from "@/context/AuthContext";
+import { FAVORITES_UPDATED_EVENT, getFavoriteIds } from "@/lib/favorites";
 import {
   FiMenu, FiX, FiPlus, FiMessageSquare, FiUser, FiLogOut,
   FiSearch, FiGrid, FiShield, FiChevronDown,
-  FiHome, FiBell,
+  FiHome, FiBell, FiHeart,
 } from "react-icons/fi";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const currentSearch = searchParams.get("search") || "";
   const [menuOpen, setMenuOpen] = useState(false);
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(currentSearch);
+  const [favoriteCount, setFavoriteCount] = useState(0);
   const avatarRef = useRef(null);
 
   // Unread conversations badge
@@ -51,6 +57,41 @@ export default function Navbar() {
   // Close mobile menu on route change
   useEffect(() => { setMenuOpen(false); setAvatarMenuOpen(false); }, [pathname]);
 
+  useEffect(() => {
+    setSearchQuery(currentSearch);
+  }, [currentSearch]);
+
+  useEffect(() => {
+    const syncFavoriteCount = () => {
+      setFavoriteCount(getFavoriteIds().length);
+    };
+
+    syncFavoriteCount();
+    window.addEventListener(FAVORITES_UPDATED_EVENT, syncFavoriteCount);
+    window.addEventListener("storage", syncFavoriteCount);
+
+    return () => {
+      window.removeEventListener(FAVORITES_UPDATED_EVENT, syncFavoriteCount);
+      window.removeEventListener("storage", syncFavoriteCount);
+    };
+  }, []);
+
+  const submitSearch = (e) => {
+    e.preventDefault();
+
+    const params = pathname === "/" ? new URLSearchParams(searchParams.toString()) : new URLSearchParams();
+    const trimmedQuery = searchQuery.trim();
+
+    if (trimmedQuery) {
+      params.set("search", trimmedQuery);
+    } else {
+      params.delete("search");
+    }
+
+    const nextUrl = params.toString() ? `/?${params.toString()}` : "/";
+    router.push(nextUrl);
+  };
+
   const isActive = (path) => pathname === path;
   const isSectionActive = (path) => pathname === path || pathname.startsWith(`${path}/`);
   const mobileNavItems = [
@@ -71,10 +112,8 @@ export default function Navbar() {
             <span className="text-lg font-bold text-white">M</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary-400 md:hidden">
-                Android view
-              </span>
-              <span className="hidden bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-xl font-bold text-transparent sm:block md:inline-block">
+              
+              <span className="bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-xl font-bold text-transparent sm:block md:inline-block">
               Marketplace
               </span>
             </div>
@@ -82,18 +121,20 @@ export default function Navbar() {
 
           {/* Search - Desktop */}
           <div className="hidden md:flex flex-1 max-w-xl mx-8">
-            <form action="/" method="GET" className="w-full relative group">
-              <div className={`absolute inset-0 rounded-xl bg-primary-500/5 transition-all duration-300 ${searchFocused ? "scale-105 opacity-100" : "scale-100 opacity-0"}`} />
-              <FiSearch className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors ${searchFocused ? "text-primary-500" : "text-gray-400"}`} size={16} />
+            <form onSubmit={submitSearch} className="w-full relative group">
+              <div className={`pointer-events-none absolute inset-0 rounded-xl bg-primary-500/5 transition-all duration-300 ${searchFocused ? "scale-105 opacity-100" : "scale-100 opacity-0"}`} />
+              <FiSearch className={`pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 transition-colors ${searchFocused ? "text-primary-500" : "text-gray-400"}`} size={16} />
               <input
                 type="text"
                 name="search"
                 placeholder="Search products, categories, sellers..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={() => setSearchFocused(true)}
                 onBlur={() => setSearchFocused(false)}
-                className="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 focus:bg-white transition-all text-sm placeholder:text-gray-400"
+                className="relative z-10 w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 focus:bg-white transition-all text-sm placeholder:text-gray-400"
               />
-              <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden lg:inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-400 text-xs rounded-md border border-gray-200">
+              <kbd className="pointer-events-none absolute right-3 top-1/2 z-10 -translate-y-1/2 hidden lg:inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-400 text-xs rounded-md border border-gray-200">
                 ⌘K
               </kbd>
             </form>
@@ -111,6 +152,15 @@ export default function Navbar() {
                 <Link href="/products/new" className="btn-primary flex items-center gap-1.5 text-sm px-4 py-2">
                   <FiPlus size={15} />
                   <span>Sell</span>
+                </Link>
+
+                <Link href="/favorites" className={`btn-icon relative ${isSectionActive("/favorites") ? "text-primary-600 bg-primary-50" : ""}`} title="Favorites">
+                  <FiHeart size={20} />
+                  {favoriteCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 bg-rose-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center border-2 border-white">
+                      {favoriteCount > 99 ? "99+" : favoriteCount}
+                    </span>
+                  )}
                 </Link>
 
                 {/* Messages */}
@@ -167,6 +217,9 @@ export default function Navbar() {
                         <FiMessageSquare size={16} /> Messages
                         {unreadConv > 0 && <span className="ml-auto badge-danger text-[10px]">{unreadConv}</span>}
                       </Link>
+                      <Link href="/favorites" className="dropdown-item" onClick={() => setAvatarMenuOpen(false)}>
+                        <FiHeart size={16} /> Favorites
+                      </Link>
 
                       {user.role === "admin" && (
                         <>
@@ -190,6 +243,14 @@ export default function Navbar() {
               </>
             ) : (
               <div className="flex items-center gap-2">
+                <Link href="/favorites" className={`btn-icon relative ${isSectionActive("/favorites") ? "text-primary-600 bg-primary-50" : ""}`} title="Favorites">
+                  <FiHeart size={20} />
+                  {favoriteCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 bg-rose-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center border-2 border-white">
+                      {favoriteCount > 99 ? "99+" : favoriteCount}
+                    </span>
+                  )}
+                </Link>
                 <Link href="/login" className="btn-ghost text-sm">Sign In</Link>
                 <Link href="/register" className="btn-primary text-sm">Get Started</Link>
               </div>
@@ -213,9 +274,16 @@ export default function Navbar() {
           {menuOpen && (
             <div className="animate-slide-down border-t border-gray-100 pb-4 pt-3 md:hidden">
               <div className="mobile-card overflow-hidden p-3">
-                <form action="/" method="GET" className="relative mb-4">
+                <form onSubmit={submitSearch} className="relative mb-4">
               <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                  <input type="text" name="search" placeholder="Search products..." className="input-field pl-10" />
+                  <input
+                    type="text"
+                    name="search"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search products..."
+                    className="input-field pl-10"
+                  />
                 </form>
 
                 {user ? (
@@ -233,6 +301,7 @@ export default function Navbar() {
 
                     <Link href="/" className="dropdown-item rounded-xl"><FiHome size={16} /> Home</Link>
                     <Link href="/products/new" className="dropdown-item rounded-xl"><FiPlus size={16} /> Sell Product</Link>
+                    <Link href="/favorites" className="dropdown-item rounded-xl"><FiHeart size={16} /> Favorites</Link>
                     <Link href="/chat" className="dropdown-item rounded-xl">
                       <FiMessageSquare size={16} /> Messages
                       {unreadConv > 0 && <span className="ml-auto badge-danger text-[10px]">{unreadConv}</span>}
@@ -248,6 +317,7 @@ export default function Navbar() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-2">
+                    <Link href="/favorites" className="btn-secondary text-center text-sm col-span-2">Favorites</Link>
                     <Link href="/login" className="btn-secondary text-center text-sm">Sign In</Link>
                     <Link href="/register" className="btn-primary text-center text-sm">Get Started</Link>
                   </div>

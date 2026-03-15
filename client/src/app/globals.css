@@ -137,6 +137,11 @@
   .mobile-app-shell {
     @apply mx-auto w-full max-w-7xl;
   }
+  .full-bleed {
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+  }
   .mobile-screen {
     @apply px-4 py-5 sm:px-6 sm:py-8;
   }

@@ -52,14 +52,11 @@ function HomeContent() {
   useEffect(() => {
     categoryAPI.getAll().then((res) => setCategories(res.data.categories || [])).catch(() => {});
   }, []);
-
-  const categoryIcons = ["💻", "👕", "🏠", "🚗", "⚽", "📚", "🎮", "🎨"];
-
   return (
     <div className="min-h-screen">
       {/* ─── Hero Section ─── */}
       {!hasFilters && (
-        <div className="relative overflow-hidden rounded-b-[2rem] bg-gradient-to-br from-primary-600 via-primary-700 to-primary-900 md:rounded-b-[2.75rem]">
+        <div className="full-bleed relative overflow-hidden rounded-b-[2rem] bg-gradient-to-br from-primary-600 via-primary-700 to-primary-900 md:rounded-b-[2.75rem]">
           {/* Decorative elements */}
           <div className="absolute inset-0">
             <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-white/5" />
@@ -167,7 +164,7 @@ function HomeContent() {
                 href={`/?category=${cat._id}`}
                 className="group mobile-card flex min-h-[110px] flex-col items-center justify-center gap-2 p-4 text-center transition-all hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-md hover:shadow-primary-500/5 sm:p-5"
               >
-                <span className="text-2xl leading-none">{categoryIcons[i % categoryIcons.length]}</span>
+          
                 <span className="text-sm font-medium text-gray-700 group-hover:text-primary-600 transition-colors text-center">
                   {cat.name}
                 </span>
@@ -241,7 +238,7 @@ function HomeContent() {
 
       {/* ─── Footer CTA ─── */}
       {!hasFilters && (
-        <div className="bg-gradient-to-r from-primary-600 to-primary-800">
+        <div className="full-bleed bg-gradient-to-r from-primary-600 to-primary-800">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center sm:py-16">
             <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">Ready to start selling?</h2>
             <p className="text-primary-200 max-w-md mx-auto mb-8">

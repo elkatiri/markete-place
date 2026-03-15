@@ -2,9 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FiMapPin, FiHeart, FiEye, FiClock } from "react-icons/fi";
 import { formatDistanceToNow } from "date-fns";
+import {
+  FAVORITES_UPDATED_EVENT,
+  isFavoriteProduct,
+  toggleFavoriteProduct,
+} from "@/lib/favorites";
 
 export default function ProductCard({ product }) {
   const [liked, setLiked] = useState(false);
@@ -19,6 +24,22 @@ export default function ProductCard({ product }) {
     used: "bg-gray-50 text-gray-600 border-gray-200",
     refurbished: "bg-violet-50 text-violet-700 border-violet-200",
   };
+
+  useEffect(() => {
+    setLiked(isFavoriteProduct(product._id));
+
+    const syncFavoriteState = () => {
+      setLiked(isFavoriteProduct(product._id));
+    };
+
+    window.addEventListener(FAVORITES_UPDATED_EVENT, syncFavoriteState);
+    window.addEventListener("storage", syncFavoriteState);
+
+    return () => {
+      window.removeEventListener(FAVORITES_UPDATED_EVENT, syncFavoriteState);
+      window.removeEventListener("storage", syncFavoriteState);
+    };
+  }, [product._id]);
 
   return (
     <div className="group relative">
@@ -104,7 +125,13 @@ export default function ProductCard({ product }) {
 
       {/* Floating like button */}
       <button
-        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLiked(!liked); }}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const result = toggleFavoriteProduct(product._id);
+          setLiked(result.favorite);
+        }}
+        aria-label={liked ? "Remove from favorites" : "Add to favorites"}
         className={`absolute top-3 right-3 z-10 flex h-8 w-8 items-center justify-center rounded-full shadow-sm transition-all ${
           liked
             ? "bg-red-500 text-white scale-110"
