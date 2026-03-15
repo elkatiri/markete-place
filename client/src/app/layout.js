@@ -2,6 +2,7 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import WhatsAppButton from "@/components/WhatsAppButton";
 import { Toaster } from "react-hot-toast";
 
 export const metadata = {
@@ -23,6 +24,7 @@ export default function RootLayout({ children }) {
           <Navbar />
           <main className="mobile-app-shell flex-1 pb-[calc(6.5rem+env(safe-area-inset-bottom))] md:pb-0">{children}</main>
           <Footer />
+          <WhatsAppButton />
           <Toaster
             position="top-center"
             toastOptions={{
