@@ -25,6 +25,64 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState(currentSearch);
   const [favoriteCount, setFavoriteCount] = useState(0);
   const avatarRef = useRef(null);
+  const notificationAudioRef = useRef(null);
+  const audioUnlockedRef = useRef(false);
+  const lastNotificationIdRef = useRef(null);
+
+  const primeNotificationAudio = () => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (!notificationAudioRef.current) {
+      notificationAudioRef.current = new Audio("/sounds/notification.wav");
+      notificationAudioRef.current.preload = "auto";
+      notificationAudioRef.current.volume = 0.8;
+    }
+
+    if (audioUnlockedRef.current) {
+      return;
+    }
+
+    const audio = notificationAudioRef.current;
+    audioUnlockedRef.current = true;
+
+    const unlockAttempt = audio.play();
+
+    if (unlockAttempt?.then) {
+      unlockAttempt
+        .then(() => {
+          audio.pause();
+          audio.currentTime = 0;
+        })
+        .catch(() => {
+          audioUnlockedRef.current = false;
+        });
+      return;
+    }
+
+    audio.pause();
+    audio.currentTime = 0;
+  };
+
+  const playNotificationTone = async () => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (!notificationAudioRef.current) {
+      primeNotificationAudio();
+    }
+
+    const audio = notificationAudioRef.current;
+    if (!audio) {
+      return;
+    }
+
+    audio.pause();
+    audio.currentTime = 0;
+    await audio.play();
+  };
 
   // Unread conversations badge
   const [unreadConv, setUnreadConv] = useState(0);
@@ -42,10 +100,65 @@ export default function Navbar() {
     const interval = setInterval(() => { if (user) fetchUnread(); }, 30000);
     const socket = getSocket();
     const handler = () => { if (user) fetchUnread(); };
+    const handleNewMessageNotification = async ({ message }) => {
+      if (!user) {
+        return;
+      }
+
+      fetchUnread();
+
+      if (!message?._id || message.sender?._id === user._id || message.sender === user._id) {
+        return;
+      }
+
+      if (lastNotificationIdRef.current === message._id) {
+        return;
+      }
+
+      lastNotificationIdRef.current = message._id;
+
+      try {
+        await playNotificationTone();
+      } catch {
+        // Ignore autoplay/browser audio failures.
+      }
+    };
+
     socket.on("receive-message", handler);
     socket.on("refresh-unread", handler);
-    return () => { isMounted = false; clearInterval(interval); socket.off("receive-message", handler); socket.off("refresh-unread", handler); };
+    socket.on("new-message-notification", handleNewMessageNotification);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+      socket.off("receive-message", handler);
+      socket.off("refresh-unread", handler);
+      socket.off("new-message-notification", handleNewMessageNotification);
+    };
   }, [user]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+
+    const unlockAudio = () => {
+      primeNotificationAudio();
+    };
+
+    window.addEventListener("pointerdown", unlockAudio, { passive: true });
+    window.addEventListener("keydown", unlockAudio);
+
+    return () => {
+      window.removeEventListener("pointerdown", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
+      if (notificationAudioRef.current) {
+        notificationAudioRef.current.pause();
+        notificationAudioRef.current.src = "";
+      }
+      notificationAudioRef.current = null;
+      audioUnlockedRef.current = false;
+    };
+  }, []);
 
   // Close avatar menu on outside click
   useEffect(() => {

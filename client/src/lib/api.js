@@ -58,6 +58,10 @@ export const chatAPI = {
   getConversations: () => api.get("/chat/conversations"),
   getMessages: (conversationId) => api.get(`/chat/messages/${conversationId}`),
   sendMessage: (data) => api.post("/chat/send", data),
+  sendImageMessage: (formData) =>
+    api.post("/chat/send-image", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
   deleteConversation: (conversationId) => api.delete(`/chat/conversation/${conversationId}`),
   blockUser: (userIdToBlock) => api.post("/chat/block", { userIdToBlock }),
   unblockUser: (userIdToUnblock) => api.post("/chat/unblock", { userIdToUnblock }),

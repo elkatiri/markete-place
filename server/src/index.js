@@ -30,6 +30,8 @@ const io = new Server(server, {
   },
 });
 
+app.set("io", io);
+
 // Connect to MongoDB
 connectDB();
 

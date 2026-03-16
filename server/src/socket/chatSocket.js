@@ -1,16 +1,66 @@
 const Message = require("../models/Message");
 
+const onlineUsers = new Map();
+
+const emitChatMessage = (io, message) => {
+  io.to(message.conversationId).emit("receive-message", message);
+
+  const receiverId = message.receiver?._id?.toString?.() || message.receiver?.toString?.();
+  if (!receiverId) {
+    return;
+  }
+
+  const receiverSocketIds = onlineUsers.get(receiverId);
+  if (receiverSocketIds?.size) {
+    receiverSocketIds.forEach((receiverSocketId) => {
+      io.to(receiverSocketId).emit("new-message-notification", {
+        conversationId: message.conversationId,
+        message,
+      });
+    });
+  }
+};
+
 const setupChatSocket = (io) => {
   // Track online users
-  const onlineUsers = new Map();
+  const broadcastOnlineUsers = () => {
+    io.emit("online-users", Array.from(onlineUsers.keys()));
+  };
+
+  const markUserOnline = (userId, socketId) => {
+    if (!userId) {
+      return;
+    }
+
+    const activeSockets = onlineUsers.get(userId) || new Set();
+    activeSockets.add(socketId);
+    onlineUsers.set(userId, activeSockets);
+  };
+
+  const markUserOffline = (userId, socketId) => {
+    if (!userId || !onlineUsers.has(userId)) {
+      return;
+    }
+
+    const activeSockets = onlineUsers.get(userId);
+    activeSockets.delete(socketId);
+
+    if (activeSockets.size === 0) {
+      onlineUsers.delete(userId);
+      return;
+    }
+
+    onlineUsers.set(userId, activeSockets);
+  };
 
   io.on("connection", (socket) => {
     console.log("User connected:", socket.id);
 
     // User comes online
     socket.on("user-online", (userId) => {
-      onlineUsers.set(userId, socket.id);
-      io.emit("online-users", Array.from(onlineUsers.keys()));
+      socket.data.userId = userId;
+      markUserOnline(userId, socket.id);
+      broadcastOnlineUsers();
     });
 
     // Join a conversation room
@@ -53,17 +103,7 @@ const setupChatSocket = (io) => {
         await message.populate("sender", "name avatar");
         await message.populate("receiver", "name avatar");
 
-        // Emit to conversation room
-        io.to(conversationId).emit("receive-message", message);
-
-        // Notify receiver if they're online but not in the room
-        const receiverSocketId = onlineUsers.get(receiverId);
-        if (receiverSocketId) {
-          io.to(receiverSocketId).emit("new-message-notification", {
-            conversationId,
-            message,
-          });
-        }
+        emitChatMessage(io, message);
       } catch (error) {
         socket.emit("message-error", { error: error.message });
       }
@@ -89,17 +129,13 @@ const setupChatSocket = (io) => {
 
     // Disconnect
     socket.on("disconnect", () => {
-      // Remove from online users
-      for (const [userId, socketId] of onlineUsers.entries()) {
-        if (socketId === socket.id) {
-          onlineUsers.delete(userId);
-          break;
-        }
-      }
-      io.emit("online-users", Array.from(onlineUsers.keys()));
+      markUserOffline(socket.data.userId, socket.id);
+      broadcastOnlineUsers();
       console.log("User disconnected:", socket.id);
     });
   });
 };
+
+setupChatSocket.emitChatMessage = emitChatMessage;
 
 module.exports = setupChatSocket;

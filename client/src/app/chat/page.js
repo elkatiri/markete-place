@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { chatAPI } from "@/lib/api";
 import { getSocket, connectSocket } from "@/lib/socket";
 import toast from "react-hot-toast";
-import { FiSend, FiArrowLeft, FiUser, FiMessageSquare, FiPackage } from "react-icons/fi";
+import { FiSend, FiArrowLeft, FiUser, FiMessageSquare, FiPackage, FiImage, FiX } from "react-icons/fi";
 import { formatDistanceToNow } from "date-fns";
 
 const DEFAULT_PRODUCT_MESSAGE = "Is this product still available?";
@@ -31,7 +31,12 @@ function ChatContent() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [onlineUserIds, setOnlineUserIds] = useState([]);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedImagePreview, setSelectedImagePreview] = useState("");
+  const [sendingImage, setSendingImage] = useState(false);
   const messagesEndRef = useRef(null);
+  const imageInputRef = useRef(null);
   const initializedFromParamsRef = useRef(false);
 
   // If coming from product page with ?to=sellerId&product=productId
@@ -97,6 +102,11 @@ function ChatContent() {
       return [];
     }
   };
+
+  const isUserOnline = useCallback(
+    (otherUserId) => Boolean(otherUserId && onlineUserIds.includes(otherUserId)),
+    [onlineUserIds]
+  );
 
   const openConversation = async (conversationId, currentConversations = conversations) => {
     setLoadingMessages(true);
@@ -193,22 +203,114 @@ function ChatContent() {
     };
   }, [user, activeConversation]);
 
+  useEffect(() => {
+    if (!user) return;
+
+    const socket = getSocket();
+
+    const handleOnlineUsers = (userIds) => {
+      setOnlineUserIds(Array.isArray(userIds) ? userIds : []);
+    };
+
+    socket.on("online-users", handleOnlineUsers);
+
+    return () => {
+      socket.off("online-users", handleOnlineUsers);
+    };
+  }, [user]);
+
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  useEffect(() => {
+    return () => {
+      if (selectedImagePreview) {
+        URL.revokeObjectURL(selectedImagePreview);
+      }
+    };
+  }, [selectedImagePreview]);
+
+  const clearSelectedImage = useCallback(() => {
+    if (selectedImagePreview) {
+      URL.revokeObjectURL(selectedImagePreview);
+    }
+    setSelectedImage(null);
+    setSelectedImagePreview("");
+    if (imageInputRef.current) {
+      imageInputRef.current.value = "";
+    }
+  }, [selectedImagePreview]);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose an image file");
+      e.target.value = "";
+      return;
+    }
+
+    if (selectedImagePreview) {
+      URL.revokeObjectURL(selectedImagePreview);
+    }
+
+    setSelectedImage(file);
+    setSelectedImagePreview(URL.createObjectURL(file));
+  };
+
   const sendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() && !selectedImage) return;
 
     const content = newMessage.trim();
-    setNewMessage("");
 
     try {
       const receiverId =
         activeConversation?.otherUser?._id ||
         activeConversation?.conversationId?.split("_").find((id) => id !== user._id);
+
+      if (!receiverId) {
+        toast.error("No recipient selected");
+        return;
+      }
+
+      if (selectedImage) {
+        setSendingImage(true);
+        const formData = new FormData();
+        formData.append("receiverId", receiverId);
+        formData.append("image", selectedImage);
+        if (content) {
+          formData.append("content", content);
+        }
+
+        const { data } = await chatAPI.sendImageMessage(formData);
+        setMessages((prev) => {
+          if (prev.some((msg) => msg._id === data.message._id)) {
+            return prev;
+          }
+          return [...prev, data.message];
+        });
+
+        if (activeConversation?.isNew) {
+          setActiveConversation({
+            ...activeConversation,
+            conversationId: data.conversationId,
+            isNew: false,
+          });
+          const socket = getSocket();
+          socket.emit("join-conversation", data.conversationId);
+        }
+
+        setNewMessage("");
+        clearSelectedImage();
+        loadConversations();
+        return;
+      }
+
+      setNewMessage("");
 
       // Only emit via socket for real-time; do NOT call REST API
       const socket = getSocket();
@@ -227,6 +329,8 @@ function ChatContent() {
     } catch {
       toast.error("Failed to send message");
       setNewMessage(content);
+    } finally {
+      setSendingImage(false);
     }
   };
 
@@ -272,14 +376,26 @@ function ChatContent() {
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <FiUser className="text-primary-600" />
+                    <div className="relative flex-shrink-0">
+                      <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+                        <FiUser className="text-primary-600" />
+                      </div>
+                      <span
+                        className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white ${
+                          isUserOnline(conv.otherUser?._id) ? "bg-emerald-500" : "bg-gray-300"
+                        }`}
+                      />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-center">
-                        <p className="font-medium truncate">
-                          {conv.otherUser?.name || "User"}
-                        </p>
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">
+                            {conv.otherUser?.name || "User"}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            {isUserOnline(conv.otherUser?._id) ? "Online" : "Offline"}
+                          </p>
+                        </div>
                         {conv.lastMessage && (
                           <span className="text-xs text-gray-400">
                             {formatDistanceToNow(new Date(conv.lastMessage.createdAt), {
@@ -295,6 +411,12 @@ function ChatContent() {
                             alt=""
                             className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-gray-200"
                           />
+                        ) : conv.lastMessage?.image?.url ? (
+                          <img
+                            src={conv.lastMessage.image.url}
+                            alt=""
+                            className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-gray-200"
+                          />
                         ) : conv.lastMessage?.product ? (
                           <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0 border border-gray-200">
                             <FiPackage className="text-gray-400" size={16} />
@@ -307,7 +429,7 @@ function ChatContent() {
                             </p>
                           )}
                           <p className="text-sm text-gray-500 truncate">
-                            {conv.lastMessage?.content || ""}
+                            {conv.lastMessage?.content || (conv.lastMessage?.image?.url ? "Sent a photo" : "")}
                           </p>
                         </div>
                       </div>
@@ -340,20 +462,32 @@ function ChatContent() {
                 >
                   <FiArrowLeft size={20} />
                 </button>
-                <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
-                  <FiUser className="text-primary-600" size={14} />
+                <div className="relative">
+                  <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
+                    <FiUser className="text-primary-600" size={14} />
+                  </div>
+                  <span
+                    className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white ${
+                      isUserOnline(activeConversation.otherUser?._id) ? "bg-emerald-500" : "bg-gray-300"
+                    }`}
+                  />
                 </div>
-                <span className="font-medium">
-                  {/* Show the other user's name, not the auth user */}
-                  {(() => {
-                    // Try to get from activeConversation.otherUser
-                    if (activeConversation.otherUser?.name) return activeConversation.otherUser.name;
-                    // Fallback: find from conversations list
-                    const conv = conversations.find((c) => c.conversationId === activeConversation.conversationId);
-                    if (conv?.otherUser?.name) return conv.otherUser.name;
-                    return "User";
-                  })()}
-                </span>
+                <div>
+                  <span className="block font-medium">
+                    {/* Show the other user's name, not the auth user */}
+                    {(() => {
+                      // Try to get from activeConversation.otherUser
+                      if (activeConversation.otherUser?.name) return activeConversation.otherUser.name;
+                      // Fallback: find from conversations list
+                      const conv = conversations.find((c) => c.conversationId === activeConversation.conversationId);
+                      if (conv?.otherUser?.name) return conv.otherUser.name;
+                      return "User";
+                    })()}
+                  </span>
+                  <span className="text-xs text-gray-400">
+                    {isUserOnline(activeConversation.otherUser?._id) ? "Online now" : "Offline"}
+                  </span>
+                </div>
                 <div className="ml-auto flex flex-wrap gap-2">
                   <button
                     onClick={handleDeleteConversation}
@@ -405,6 +539,15 @@ function ChatContent() {
                               : "bg-gray-100 text-gray-800 rounded-bl-sm"
                           }`}
                         >
+                            {msg.image?.url && (
+                              <a href={msg.image.url} target="_blank" rel="noreferrer" className="mb-3 block overflow-hidden rounded-xl">
+                                <img
+                                  src={msg.image.url}
+                                  alt="Chat attachment"
+                                  className="max-h-72 w-full rounded-xl object-cover"
+                                />
+                              </a>
+                            )}
                           {msg.product && (
                             <div
                               className={`mb-3 rounded-xl overflow-hidden border ${
@@ -439,7 +582,7 @@ function ChatContent() {
                               </div>
                             </div>
                           )}
-                          <p className="break-words">{msg.content}</p>
+                          {msg.content ? <p className="break-words">{msg.content}</p> : null}
                           <p
                             className={`text-xs mt-1 ${
                               isMine ? "text-primary-200" : "text-gray-400"
@@ -461,23 +604,65 @@ function ChatContent() {
               {/* Message input */}
               <form
                 onSubmit={sendMessage}
-                className="flex gap-2 border-t border-gray-200 p-4"
+                className="border-t border-gray-200 p-4"
               >
-                <input
-                  type="text"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type a message..."
-                  className="input-field flex-1"
-                  maxLength={1000}
-                />
-                <button
-                  type="submit"
-                  disabled={!newMessage.trim()}
-                  className="btn-primary px-4"
-                >
-                  <FiSend />
-                </button>
+                {selectedImagePreview ? (
+                  <div className="mb-3 inline-flex max-w-[10rem] flex-col gap-2 rounded-2xl border border-gray-200 bg-gray-50 p-2">
+                    <div className="relative">
+                      <img
+                        src={selectedImagePreview}
+                        alt="Selected upload"
+                        className="h-28 w-full rounded-xl object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={clearSelectedImage}
+                        className="absolute right-2 top-2 rounded-full bg-black/60 p-1 text-white"
+                      >
+                        <FiX size={14} />
+                      </button>
+                    </div>
+                    <p className="truncate text-xs text-gray-500">{selectedImage?.name}</p>
+                  </div>
+                ) : null}
+                <div className="flex gap-2">
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                  <input
+                    type="text"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder={selectedImage ? "Add a caption..." : "Type a message..."}
+                    className="input-field flex-1"
+                    maxLength={1000}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => imageInputRef.current?.click()}
+                    className="flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 text-gray-500 transition-colors hover:border-primary-300 hover:text-primary-600"
+                    title="Send image"
+                  >
+                    <FiImage size={18} />
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={(!newMessage.trim() && !selectedImage) || sendingImage}
+                    className="btn-primary px-4"
+                  >
+                    {sendingImage ? (
+                      <span className="flex items-center gap-2">
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                      </span>
+                    ) : (
+                      <FiSend />
+                    )}
+                  </button>
+                </div>
               </form>
             </>
           ) : (

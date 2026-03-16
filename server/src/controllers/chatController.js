@@ -1,4 +1,5 @@
 // Delete a conversation (all messages for a conversationId)
+const chatSocket = require("../socket/chatSocket");
 exports.deleteConversation = async (req, res) => {
   try {
     const { conversationId } = req.params;
@@ -55,6 +56,56 @@ const User = require("../models/User");
 const getConversationId = (userId1, userId2) => {
   const sorted = [userId1, userId2].sort();
   return `${sorted[0]}_${sorted[1]}`;
+};
+
+const createPopulatedMessage = async ({ senderId, receiverId, content = "", productId, image }) => {
+  const conversationId = getConversationId(senderId.toString(), receiverId.toString());
+
+  const message = await Message.create({
+    conversationId,
+    sender: senderId,
+    receiver: receiverId,
+    product: productId || undefined,
+    image,
+    content: content?.trim?.() || "",
+  });
+
+  await message.populate("sender", "name avatar");
+  await message.populate("receiver", "name avatar");
+  await message.populate("product", "title images price");
+
+  return { message, conversationId };
+};
+
+const ensureMessagingAllowed = async (senderId, receiverId) => {
+  if (receiverId === senderId.toString()) {
+    const error = new Error("Cannot message yourself");
+    error.status = 400;
+    throw error;
+  }
+
+  const [sender, receiver] = await Promise.all([
+    User.findById(senderId),
+    User.findById(receiverId),
+  ]);
+
+  if (!receiver) {
+    const error = new Error("Receiver not found");
+    error.status = 404;
+    throw error;
+  }
+
+  if (receiver.blockedUsers.includes(senderId)) {
+    const error = new Error("You are blocked by this user.");
+    error.status = 403;
+    throw error;
+  }
+
+  if (sender.blockedUsers.includes(receiverId)) {
+    const error = new Error("You have blocked this user.");
+    error.status = 400;
+    throw error;
+  }
 };
 
 // Get all conversations for current user
@@ -152,32 +203,54 @@ exports.sendMessage = async (req, res) => {
   try {
     const { receiverId, content, productId } = req.body;
 
-    if (receiverId === req.user._id.toString()) {
-      return res.status(400).json({ success: false, message: "Cannot message yourself" });
-    }
-
-    const receiver = await User.findById(receiverId);
-    if (!receiver) {
-      return res.status(404).json({ success: false, message: "Receiver not found" });
-    }
-
-    const conversationId = getConversationId(req.user._id.toString(), receiverId);
-
-    const message = await Message.create({
-      conversationId,
-      sender: req.user._id,
-      receiver: receiverId,
-      product: productId || undefined,
+    await ensureMessagingAllowed(req.user._id, receiverId);
+    const { message, conversationId } = await createPopulatedMessage({
+      senderId: req.user._id,
+      receiverId,
       content,
+      productId,
     });
 
-    await message.populate("sender", "name avatar");
-    await message.populate("receiver", "name avatar");
-    await message.populate("product", "title images price");
+    const io = req.app.get("io");
+    if (io) {
+      chatSocket.emitChatMessage(io, message);
+    }
 
     res.status(201).json({ success: true, message, conversationId });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(error.status || 500).json({ success: false, message: error.message });
+  }
+};
+
+// Send an image message
+exports.sendImageMessage = async (req, res) => {
+  try {
+    const { receiverId, content } = req.body;
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "Image is required" });
+    }
+
+    await ensureMessagingAllowed(req.user._id, receiverId);
+
+    const { message, conversationId } = await createPopulatedMessage({
+      senderId: req.user._id,
+      receiverId,
+      content,
+      image: {
+        url: req.file.path,
+        publicId: req.file.filename,
+      },
+    });
+
+    const io = req.app.get("io");
+    if (io) {
+      chatSocket.emitChatMessage(io, message);
+    }
+
+    res.status(201).json({ success: true, message, conversationId });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, message: error.message });
   }
 };
 

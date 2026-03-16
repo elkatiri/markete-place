@@ -21,10 +21,15 @@ const messageSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Product",
     },
+    image: {
+      url: String,
+      publicId: String,
+    },
     content: {
       type: String,
-      required: [true, "Message content is required"],
       maxlength: 1000,
+      trim: true,
+      default: "",
     },
     read: {
       type: Boolean,
@@ -33,5 +38,16 @@ const messageSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+messageSchema.pre("validate", function validateMessage(next) {
+  const hasContent = Boolean(this.content && this.content.trim());
+  const hasImage = Boolean(this.image?.url);
+
+  if (!hasContent && !hasImage) {
+    this.invalidate("content", "Message content or image is required");
+  }
+
+  next();
+});
 
 module.exports = mongoose.model("Message", messageSchema);
