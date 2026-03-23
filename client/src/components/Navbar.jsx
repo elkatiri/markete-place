@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { chatAPI } from "@/lib/api";
-import { getSocket } from "@/lib/socket";
 import { useAuth } from "@/context/AuthContext";
 import { FAVORITES_UPDATED_EVENT, getFavoriteIds } from "@/lib/favorites";
 import {
@@ -28,6 +27,7 @@ export default function Navbar() {
   const notificationAudioRef = useRef(null);
   const audioUnlockedRef = useRef(false);
   const lastNotificationIdRef = useRef(null);
+  const unreadInitializedRef = useRef(false);
 
   const primeNotificationAudio = () => {
     if (typeof window === "undefined") {
@@ -88,51 +88,69 @@ export default function Navbar() {
   const [unreadConv, setUnreadConv] = useState(0);
   useEffect(() => {
     let isMounted = true;
-    async function fetchUnread() {
+
+    async function fetchUnread({ notify = false } = {}) {
       try {
         const res = await chatAPI.getConversations();
         if (!isMounted) return;
         const conversations = res.data?.conversations || [];
-        setUnreadConv(Array.isArray(conversations) ? conversations.filter((c) => c.unreadCount > 0).length : 0);
-      } catch { setUnreadConv(0); }
-    }
-    if (user) fetchUnread();
-    const interval = setInterval(() => { if (user) fetchUnread(); }, 30000);
-    const socket = getSocket();
-    const handler = () => { if (user) fetchUnread(); };
-    const handleNewMessageNotification = async ({ message }) => {
-      if (!user) {
-        return;
-      }
+        const unreadConversations = Array.isArray(conversations)
+          ? conversations.filter((c) => c.unreadCount > 0)
+          : [];
 
-      fetchUnread();
+        setUnreadConv(unreadConversations.length);
 
-      if (!message?._id || message.sender?._id === user._id || message.sender === user._id) {
-        return;
-      }
+        const latestUnreadMessage = unreadConversations
+          .filter((conversation) => {
+            const senderId = conversation.lastMessage?.sender?._id || conversation.lastMessage?.sender;
+            return senderId && senderId !== user?._id;
+          })
+          .sort(
+            (left, right) =>
+              new Date(right.lastMessage?.createdAt || 0).getTime() -
+              new Date(left.lastMessage?.createdAt || 0).getTime()
+          )[0]?.lastMessage;
 
-      if (lastNotificationIdRef.current === message._id) {
-        return;
-      }
+        const latestUnreadMessageId = latestUnreadMessage?._id || null;
 
-      lastNotificationIdRef.current = message._id;
+        if (!unreadInitializedRef.current) {
+          lastNotificationIdRef.current = latestUnreadMessageId;
+          unreadInitializedRef.current = true;
+          return;
+        }
 
-      try {
-        await playNotificationTone();
+        if (notify && latestUnreadMessageId && latestUnreadMessageId !== lastNotificationIdRef.current) {
+          lastNotificationIdRef.current = latestUnreadMessageId;
+          try {
+            await playNotificationTone();
+          } catch {
+            // Ignore autoplay/browser audio failures.
+          }
+          return;
+        }
+
+        if (!latestUnreadMessageId) {
+          lastNotificationIdRef.current = null;
+        }
       } catch {
-        // Ignore autoplay/browser audio failures.
+        setUnreadConv(0);
       }
-    };
+    }
+    if (user) {
+      fetchUnread();
+    } else {
+      setUnreadConv(0);
+      unreadInitializedRef.current = false;
+      lastNotificationIdRef.current = null;
+    }
 
-    socket.on("receive-message", handler);
-    socket.on("refresh-unread", handler);
-    socket.on("new-message-notification", handleNewMessageNotification);
+    const interval = setInterval(() => {
+      if (user) fetchUnread({ notify: true });
+    }, 10000);
+
     return () => {
       isMounted = false;
       clearInterval(interval);
-      socket.off("receive-message", handler);
-      socket.off("refresh-unread", handler);
-      socket.off("new-message-notification", handleNewMessageNotification);
     };
   }, [user]);
 

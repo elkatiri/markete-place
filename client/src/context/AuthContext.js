@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { authAPI } from "@/lib/api";
-import { connectSocket, disconnectSocket } from "@/lib/socket";
 
 const AuthContext = createContext();
 
@@ -19,7 +18,6 @@ export function AuthProvider({ children }) {
       }
       const { data } = await authAPI.getMe();
       setUser(data.user);
-      connectSocket(data.user._id);
     } catch {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
@@ -36,7 +34,6 @@ export function AuthProvider({ children }) {
     const { data } = await authAPI.login({ email, password });
     localStorage.setItem("token", data.token);
     setUser(data.user);
-    connectSocket(data.user._id);
     return data;
   };
 
@@ -44,14 +41,12 @@ export function AuthProvider({ children }) {
     const { data } = await authAPI.register({ name, email, password });
     localStorage.setItem("token", data.token);
     setUser(data.user);
-    connectSocket(data.user._id);
     return data;
   };
 
   const logout = () => {
     localStorage.removeItem("token");
     setUser(null);
-    disconnectSocket();
   };
 
   return (

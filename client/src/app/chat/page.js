@@ -4,12 +4,14 @@ import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { chatAPI } from "@/lib/api";
-import { getSocket, connectSocket } from "@/lib/socket";
 import toast from "react-hot-toast";
 import { FiSend, FiArrowLeft, FiUser, FiMessageSquare, FiPackage, FiImage, FiX } from "react-icons/fi";
 import { formatDistanceToNow } from "date-fns";
 
 const DEFAULT_PRODUCT_MESSAGE = "Is this product still available?";
+const MESSAGE_POLL_INTERVAL = 5000;
+const CONVERSATION_POLL_INTERVAL = 10000;
+const ONLINE_WINDOW_MS = 2 * 60 * 1000;
 
 function ChatContent() {
     // Blocked state for UI
@@ -31,7 +33,6 @@ function ChatContent() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [loadingMessages, setLoadingMessages] = useState(false);
-  const [onlineUserIds, setOnlineUserIds] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedImagePreview, setSelectedImagePreview] = useState("");
   const [sendingImage, setSendingImage] = useState(false);
@@ -50,7 +51,6 @@ function ChatContent() {
       return;
     }
     if (user) {
-      connectSocket(user._id);
       initializeChat();
     }
   }, [user, authLoading, router, recipientId, productId]);
@@ -104,8 +104,11 @@ function ChatContent() {
   };
 
   const isUserOnline = useCallback(
-    (otherUserId) => Boolean(otherUserId && onlineUserIds.includes(otherUserId)),
-    [onlineUserIds]
+    (otherUser) => {
+      if (!otherUser?.lastSeen) return false;
+      return Date.now() - new Date(otherUser.lastSeen).getTime() < ONLINE_WINDOW_MS;
+    },
+    []
   );
 
   const openConversation = async (conversationId, currentConversations = conversations) => {
@@ -120,13 +123,6 @@ function ChatContent() {
       // Check block status
       const otherUserId = (conv && conv.otherUser?._id) || (conversationId.split("_").find((id) => id !== user._id));
       if (otherUserId) checkBlocked(otherUserId);
-
-      // Join socket room
-      const socket = getSocket();
-      socket.emit("join-conversation", conversationId);
-      socket.emit("mark-read", { conversationId, userId: user._id });
-      // Notify all clients to refresh unread badge
-      socket.emit("refresh-unread", { userId: user._id });
     } catch {
       toast.error("Failed to load messages");
     } finally {
@@ -172,52 +168,37 @@ function ChatContent() {
     }
   };
 
-  // Socket listener for incoming messages
   useEffect(() => {
     if (!user) return;
 
-    const socket = getSocket();
-
-    const handleReceiveMessage = (message) => {
-      if (activeConversation && message.conversationId === activeConversation.conversationId) {
-        setMessages((prev) => {
-          // Only add if not already present (by _id)
-          if (prev.some((m) => m._id === message._id)) return prev;
-          return [...prev, message];
-        });
-        socket.emit("mark-read", { conversationId: message.conversationId, userId: user._id });
-        // Notify all clients to refresh unread badge
-        socket.emit("refresh-unread", { userId: user._id });
-      }
-      // Refresh conversations list
+    loadConversations();
+    const interval = setInterval(() => {
       loadConversations();
-    };
-
-    socket.on("receive-message", handleReceiveMessage);
+    }, CONVERSATION_POLL_INTERVAL);
 
     return () => {
-      socket.off("receive-message", handleReceiveMessage);
-      if (activeConversation) {
-        socket.emit("leave-conversation", activeConversation.conversationId);
-      }
-    };
-  }, [user, activeConversation]);
-
-  useEffect(() => {
-    if (!user) return;
-
-    const socket = getSocket();
-
-    const handleOnlineUsers = (userIds) => {
-      setOnlineUserIds(Array.isArray(userIds) ? userIds : []);
-    };
-
-    socket.on("online-users", handleOnlineUsers);
-
-    return () => {
-      socket.off("online-users", handleOnlineUsers);
+      clearInterval(interval);
     };
   }, [user]);
+
+  useEffect(() => {
+    if (!user || !activeConversation?.conversationId || activeConversation?.isNew) return;
+
+    const refreshMessages = async () => {
+      try {
+        const { data } = await chatAPI.getMessages(activeConversation.conversationId);
+        setMessages(data.messages || []);
+      } catch {
+        // Ignore transient polling errors.
+      }
+    };
+
+    const interval = setInterval(refreshMessages, MESSAGE_POLL_INTERVAL);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [user, activeConversation?.conversationId, activeConversation?.isNew]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -300,8 +281,6 @@ function ChatContent() {
             conversationId: data.conversationId,
             isNew: false,
           });
-          const socket = getSocket();
-          socket.emit("join-conversation", data.conversationId);
         }
 
         setNewMessage("");
@@ -310,22 +289,27 @@ function ChatContent() {
         return;
       }
 
-      setNewMessage("");
-
-      // Only emit via socket for real-time; do NOT call REST API
-      const socket = getSocket();
-      socket.emit("send-message", {
-        senderId: user._id,
+      const { data } = await chatAPI.sendMessage({
         receiverId,
         content,
       });
+      setMessages((prev) => {
+        if (prev.some((msg) => msg._id === data.message._id)) {
+          return prev;
+        }
+        return [...prev, data.message];
+      });
+      setNewMessage("");
 
-      // Update active conversation ID if it was new
-      // (No REST API response, so just clear isNew and reload conversations)
       if (activeConversation?.isNew) {
-        setActiveConversation({ ...activeConversation, isNew: false });
-        loadConversations();
+        setActiveConversation({
+          ...activeConversation,
+          conversationId: data.conversationId,
+          isNew: false,
+        });
       }
+
+      loadConversations();
     } catch {
       toast.error("Failed to send message");
       setNewMessage(content);
@@ -382,7 +366,7 @@ function ChatContent() {
                       </div>
                       <span
                         className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white ${
-                          isUserOnline(conv.otherUser?._id) ? "bg-emerald-500" : "bg-gray-300"
+                          isUserOnline(conv.otherUser) ? "bg-emerald-500" : "bg-gray-300"
                         }`}
                       />
                     </div>
@@ -393,7 +377,7 @@ function ChatContent() {
                             {conv.otherUser?.name || "User"}
                           </p>
                           <p className="text-xs text-gray-400">
-                            {isUserOnline(conv.otherUser?._id) ? "Online" : "Offline"}
+                            {isUserOnline(conv.otherUser) ? "Online" : "Offline"}
                           </p>
                         </div>
                         {conv.lastMessage && (
@@ -468,7 +452,12 @@ function ChatContent() {
                   </div>
                   <span
                     className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white ${
-                      isUserOnline(activeConversation.otherUser?._id) ? "bg-emerald-500" : "bg-gray-300"
+                      isUserOnline(
+                        activeConversation.otherUser ||
+                        conversations.find((c) => c.conversationId === activeConversation.conversationId)?.otherUser
+                      )
+                        ? "bg-emerald-500"
+                        : "bg-gray-300"
                     }`}
                   />
                 </div>
@@ -485,7 +474,12 @@ function ChatContent() {
                     })()}
                   </span>
                   <span className="text-xs text-gray-400">
-                    {isUserOnline(activeConversation.otherUser?._id) ? "Online now" : "Offline"}
+                    {isUserOnline(
+                      activeConversation.otherUser ||
+                      conversations.find((c) => c.conversationId === activeConversation.conversationId)?.otherUser
+                    )
+                      ? "Online now"
+                      : "Offline"}
                   </span>
                 </div>
                 <div className="ml-auto flex flex-wrap gap-2">

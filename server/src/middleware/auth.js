@@ -16,6 +16,13 @@ const auth = async (req, res, next) => {
       return res.status(401).json({ success: false, message: "User not found" });
     }
 
+    const now = new Date();
+    const lastSeenAt = user.lastSeen ? new Date(user.lastSeen).getTime() : 0;
+    if (now.getTime() - lastSeenAt > 30000) {
+      user.lastSeen = now;
+      User.findByIdAndUpdate(user._id, { lastSeen: now }).catch(() => {});
+    }
+
     req.user = user;
     next();
   } catch (error) {

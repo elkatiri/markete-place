@@ -70,8 +70,8 @@ const createPopulatedMessage = async ({ senderId, receiverId, content = "", prod
     content: content?.trim?.() || "",
   });
 
-  await message.populate("sender", "name avatar");
-  await message.populate("receiver", "name avatar");
+  await message.populate("sender", "name avatar lastSeen");
+  await message.populate("receiver", "name avatar lastSeen");
   await message.populate("product", "title images price");
 
   return { message, conversationId };
@@ -144,7 +144,7 @@ exports.getConversations = async (req, res) => {
             : msg.lastMessage.sender;
 
         const [otherUser, product] = await Promise.all([
-          User.findById(otherUserId).select("name avatar"),
+          User.findById(otherUserId).select("name avatar lastSeen"),
           msg.lastMessage.product
             ? Product.findById(msg.lastMessage.product).select("title images price")
             : null,
@@ -181,8 +181,8 @@ exports.getMessages = async (req, res) => {
     }
 
     const messages = await Message.find({ conversationId })
-      .populate("sender", "name avatar")
-      .populate("receiver", "name avatar")
+      .populate("sender", "name avatar lastSeen")
+      .populate("receiver", "name avatar lastSeen")
       .populate("product", "title images price")
       .sort({ createdAt: 1 });
 
