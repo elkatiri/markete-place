@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
@@ -21,7 +22,9 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body className="flex min-h-screen flex-col">
         <AuthProvider>
-          <Navbar />
+          <Suspense fallback={null}>
+            <Navbar />
+          </Suspense>
           <main className="mobile-app-shell flex-1 pb-[calc(6.5rem+env(safe-area-inset-bottom))] md:pb-0">{children}</main>
           <Footer />
           <WhatsAppButton />
