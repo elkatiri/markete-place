@@ -14,7 +14,7 @@ const getAllowedOrigins = () => {
 
   return configuredOrigins
     .split(",")
-    .map((origin) => origin.trim())
+    .map((origin) => origin.trim().replace(/\/+$/, ""))
     .filter(Boolean);
 };
 
@@ -32,6 +32,7 @@ const createApp = () => {
           return;
         }
 
+        console.error(`CORS blocked origin: ${origin}. Allowed: ${allowedOrigins.join(", ")}`);
         callback(new Error("Not allowed by CORS"));
       },
       credentials: true,
